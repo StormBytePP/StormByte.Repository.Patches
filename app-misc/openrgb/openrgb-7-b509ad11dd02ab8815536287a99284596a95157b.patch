@@ -1,0 +1,180 @@
+From b509ad11dd02ab8815536287a99284596a95157b Mon Sep 17 00:00:00 2001
+From: Geoffrey Mon <geofbot@gmail.com>
+Date: Wed, 24 May 2023 22:27:03 -0500
+Subject: [PATCH] Fury: add dynamic mode, speed offsets for rain mode
+
+Note: an smbus quick write to 0x6_ seems to crash the RGB controller
+when in Dynamic mode. Then, the RAM can no longer be detected if it
+is placed in Dynamic mode and then devices are rescanned.
+---
+ .../KingstonFuryDRAMController.cpp            | 17 +++++++
+ .../KingstonFuryDRAMController.h              |  2 +
+ .../KingstonFuryDRAMControllerDetect.cpp      | 11 ++--
+ .../RGBController_KingstonFuryDRAM.cpp        | 51 ++++++++++++++++++-
+ 4 files changed, 76 insertions(+), 5 deletions(-)
+
+diff --git a/Controllers/KingstonFuryDRAMController/KingstonFuryDRAMController.cpp b/Controllers/KingstonFuryDRAMController/KingstonFuryDRAMController.cpp
+index 47d3490c3..6a93a8970 100644
+--- a/Controllers/KingstonFuryDRAMController/KingstonFuryDRAMController.cpp
++++ b/Controllers/KingstonFuryDRAMController/KingstonFuryDRAMController.cpp
+@@ -129,6 +129,23 @@ void KingstonFuryDRAMController::SetRegister(int reg, unsigned char val)
+     std::this_thread::sleep_for(FURY_DELAY);
+ }
+ 
++void KingstonFuryDRAMController::SetRegister(int reg, std::vector<unsigned char> vals)
++{
++    if (vals.size() != slots.size())
++    {
++        return;
++    }
++    for (int idx = 0; idx < slots.size(); idx++)
++    {
++        int res = bus->i2c_smbus_write_byte_data(0x60 + slots[idx],
++                                                 reg,
++                                                 vals[idx]);
++        LOG_DEBUG("[%s] %02X setting register &%02X=%02X; res=%02X",
++                  FURY_CONTROLLER_NAME, 0x60 + slots[idx], reg, vals[idx], res);
++    }
++    std::this_thread::sleep_for(FURY_DELAY);
++}
++
+ void KingstonFuryDRAMController::SetModeColors(std::vector<RGBColor> colors)
+ {
+     if (colors.empty() || colors.size() > FURY_MAX_MODE_COLORS)
+diff --git a/Controllers/KingstonFuryDRAMController/KingstonFuryDRAMController.h b/Controllers/KingstonFuryDRAMController/KingstonFuryDRAMController.h
+index 2419c918e..8d3f4d6a9 100644
+--- a/Controllers/KingstonFuryDRAMController/KingstonFuryDRAMController.h
++++ b/Controllers/KingstonFuryDRAMController/KingstonFuryDRAMController.h
+@@ -61,6 +61,7 @@ enum
+     FURY_MODE_STATIC                  = 0x00,
+     FURY_MODE_DIRECT                  = 0x10,
+     FURY_MODE_RAINBOW                 = 0x01,
++    FURY_MODE_DYNAMIC                 = 0x04,
+     FURY_MODE_RAIN                    = 0x06,
+ };
+ 
+@@ -88,6 +89,7 @@ public:
+     void            SetNumSlots();
+ 
+     void            SetRegister(int reg, unsigned char val);
++    void            SetRegister(int reg, std::vector<unsigned char> vals);
+     void            SetModeColors(std::vector<RGBColor> colors);
+     void            SetLEDColors(std::vector<RGBColor> colors);
+ 
+diff --git a/Controllers/KingstonFuryDRAMController/KingstonFuryDRAMControllerDetect.cpp b/Controllers/KingstonFuryDRAMController/KingstonFuryDRAMControllerDetect.cpp
+index d44e33705..5579fb3a0 100644
+--- a/Controllers/KingstonFuryDRAMController/KingstonFuryDRAMControllerDetect.cpp
++++ b/Controllers/KingstonFuryDRAMController/KingstonFuryDRAMControllerDetect.cpp
+@@ -29,7 +29,8 @@ bool TestForFuryDDR5(i2c_smbus_interface* bus, int slot_index)
+         return false;
+     }
+ 
+-    for (int i = 0; i < 3; i++)
++    // TODO probing 0x6_ address seems to crash the smbus controller when in dynamic mode
++    for (int i = 0; i < 2; i++)
+     {
+         addr = test_addrs[i] + slot_index;
+         res = bus->i2c_smbus_write_quick(addr, I2C_SMBUS_WRITE);
+@@ -46,8 +47,10 @@ bool TestForFuryDDR5(i2c_smbus_interface* bus, int slot_index)
+     int slot_6x_addr = base_6x_addr + slot_index;
+     char test_str[] = "FURY";
+     char model_code;
+-    bus->i2c_smbus_write_byte_data(slot_6x_addr, FURY_REG_APPLY, FURY_BEGIN_TRNSFER);
++    res = bus->i2c_smbus_write_byte_data(slot_6x_addr, FURY_REG_APPLY, FURY_BEGIN_TRNSFER);
+     std::this_thread::sleep_for(FURY_DELAY);
++    LOG_DEBUG("[%s] %02X beginning transaction; res=%02X",
++              FURY_CONTROLLER_NAME, slot_6x_addr, res);
+ 
+     for (int i = 1; i <= 4; i++)
+     {
+@@ -68,8 +71,10 @@ bool TestForFuryDDR5(i2c_smbus_interface* bus, int slot_index)
+     LOG_DEBUG("[%s] Reading model code at address %02X register %02X, res=%02X",
+               FURY_CONTROLLER_NAME, slot_6x_addr, 6, model_code);
+ 
+-    bus->i2c_smbus_write_byte_data(slot_6x_addr, FURY_REG_APPLY, FURY_END_TRNSFER);
++    res = bus->i2c_smbus_write_byte_data(slot_6x_addr, FURY_REG_APPLY, FURY_END_TRNSFER);
+     std::this_thread::sleep_for(FURY_DELAY);
++    LOG_DEBUG("[%s] %02X ending transaction; res=%02X",
++              FURY_CONTROLLER_NAME, slot_6x_addr, res);
+     if (!passed) {
+         return false;
+     }
+diff --git a/Controllers/KingstonFuryDRAMController/RGBController_KingstonFuryDRAM.cpp b/Controllers/KingstonFuryDRAMController/RGBController_KingstonFuryDRAM.cpp
+index 820d1482d..6249fb79f 100644
+--- a/Controllers/KingstonFuryDRAMController/RGBController_KingstonFuryDRAM.cpp
++++ b/Controllers/KingstonFuryDRAMController/RGBController_KingstonFuryDRAM.cpp
+@@ -83,6 +83,24 @@ RGBController_KingstonFuryDRAM::RGBController_KingstonFuryDRAM(KingstonFuryDRAMC
+     Rain.brightness_max = 100;
+     Rain.brightness = 80;
+     modes.push_back(Rain);
++
++    mode Dynamic;
++    Dynamic.name       = "Dynamic";
++    Dynamic.value      = FURY_MODE_DYNAMIC;
++    Dynamic.flags      = MODE_FLAG_HAS_MODE_SPECIFIC_COLOR | MODE_FLAG_HAS_SPEED |
++        MODE_FLAG_HAS_BRIGHTNESS;
++    Dynamic.color_mode = MODE_COLORS_MODE_SPECIFIC;
++    Dynamic.colors_min = 1;
++    Dynamic.colors_max = 10;
++    Dynamic.colors.resize(10);
++    Dynamic.speed_min  = 1000;
++    Dynamic.speed_max  = 100;
++    Dynamic.speed      = 300;
++    Dynamic.brightness_min = 0;
++    Dynamic.brightness_max = 100;
++    Dynamic.brightness = 80;
++    modes.push_back(Dynamic);
++
+     SetupZones();
+ }
+ 
+@@ -160,6 +178,22 @@ void RGBController_KingstonFuryDRAM::DeviceUpdateLEDs()
+         controller->SetRegister(FURY_REG_DELAY, 0);
+         controller->SetRegister(FURY_REG_LENGTH, 3);
+         break;
++
++    case FURY_MODE_DYNAMIC:
++        controller->SetRegister(FURY_REG_DIRECTION,
++                                FURY_DIR_BOTTOM_TO_TOP);
++        controller->SetRegister(FURY_REG_DELAY, 0);
++
++        // TODO constants
++        // color hold
++        controller->SetRegister(0x12, modes[active_mode].speed >> 8);
++        controller->SetRegister(0x13, 1); // always 1?
++
++        // color change
++        controller->SetRegister(0x14, (modes[active_mode].speed * 5) >> 8);
++        controller->SetRegister(0x15, 1); // always 1?
++
++        break;
+     }
+ 
+     if (modes[active_mode].color_mode == MODE_COLORS_PER_LED)
+@@ -186,8 +220,21 @@ void RGBController_KingstonFuryDRAM::DeviceUpdateLEDs()
+ 
+     if (modes[active_mode].flags & MODE_FLAG_HAS_SPEED)
+     {
+-        controller->SetRegister(FURY_REG_SPEED,
+-                                modes[active_mode].speed);
++        if (modes[active_mode].value == FURY_MODE_DYNAMIC)
++        {
++            controller->SetRegister(FURY_REG_SPEED, 0);
++        } else if (modes[active_mode].value == FURY_MODE_RAIN) {
++            // speed offsets taken from Kingston software
++            unsigned char offsets[4] = {11, 0, 15, 9};
++            std::vector<unsigned char> speeds;
++            for (int idx = 0; idx < controller->GetSlotCount(); idx++)
++            {
++                speeds.push_back(modes[active_mode].speed + offsets[idx]);
++            }
++            controller->SetRegister(FURY_REG_SPEED, speeds);
++        } else {
++            controller->SetRegister(FURY_REG_SPEED, modes[active_mode].speed);
++        }
+     }
+ 
+     controller->SetRegister(FURY_REG_BRIGHTNESS,
+-- 
+GitLab
+

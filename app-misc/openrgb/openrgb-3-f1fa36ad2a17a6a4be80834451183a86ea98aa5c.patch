@@ -1,0 +1,191 @@
+From f1fa36ad2a17a6a4be80834451183a86ea98aa5c Mon Sep 17 00:00:00 2001
+From: Geoffrey Mon <geofbot@gmail.com>
+Date: Mon, 22 May 2023 21:49:56 -0500
+Subject: [PATCH] new Fury detect code
+
+---
+ .../KingstonFuryDRAMControllerDetect.cpp      | 146 +++++++++++++++---
+ 1 file changed, 121 insertions(+), 25 deletions(-)
+
+diff --git a/Controllers/KingstonFuryDRAMController/KingstonFuryDRAMControllerDetect.cpp b/Controllers/KingstonFuryDRAMController/KingstonFuryDRAMControllerDetect.cpp
+index 4dca18b7d..e41c8e19f 100644
+--- a/Controllers/KingstonFuryDRAMController/KingstonFuryDRAMControllerDetect.cpp
++++ b/Controllers/KingstonFuryDRAMController/KingstonFuryDRAMControllerDetect.cpp
+@@ -11,53 +11,149 @@
+ 
+ using namespace std::chrono_literals;
+ 
+-#define FURY_CONTROLLER_NAME "Fury DRAM"
++#define FURY_CONTROLLER_NAME "Kingston Fury DDR5 DRAM"
++#define FURY_DELAY 30ms
++
++// TODO is this safe for non-Kingston devices?
++bool TestForFuryDDR5(i2c_smbus_interface* bus, int slot_index)
++{
++    // TODO make these constants
++    int base_4x_addr = 0x48;
++    int base_5x_addr = 0x50;
++    int base_6x_addr = 0x60;
++    int test_addrs[] = {base_4x_addr, base_5x_addr, base_6x_addr};
++    int addr;
++    int res;
++
++    if (slot_index < 0 || slot_index >= 8) {
++        LOG_DEBUG("[%s] Fury DDR5 detect called for invalid slot %d",
++                  FURY_CONTROLLER_NAME, slot_index);
++        return false;
++    }
++
++    for (int i = 0; i < 3; i++)
++    {
++        addr = test_addrs[i] + slot_index;
++        res = bus->i2c_smbus_write_quick(addr, I2C_SMBUS_WRITE);
++        LOG_DEBUG("[%s] Writing at address %02X, res=%02X",
++                  FURY_CONTROLLER_NAME, addr, res);
++        if (res < 0)
++        {
++            return false;
++        }
++    }
++
++
++    bool passed = true;
++    int slot_6x_addr = base_6x_addr + slot_index;
++    char test_str[] = "FURY";
++    char model_code;
++    bus->i2c_smbus_write_byte_data(slot_6x_addr, FURY_REG_APPLY, FURY_BEGIN_TRNSFER);
++    std::this_thread::sleep_for(FURY_DELAY);
++
++    for (int i = 1; i <= 4; i++)
++    {
++        res = bus->i2c_smbus_read_word_data(slot_6x_addr, i);
++        std::this_thread::sleep_for(FURY_DELAY);
++        char shifted = res >> 8;
++        LOG_DEBUG("[%s] Testing address %02X register %02X, res=%02X",
++                  FURY_CONTROLLER_NAME, slot_6x_addr, i, shifted);
++        if (shifted != test_str[i-1])
++        {
++            passed = false;
++        }
++    }
++
++    res = bus->i2c_smbus_read_word_data(slot_6x_addr, 6);
++    model_code = res >> 8;
++    std::this_thread::sleep_for(FURY_DELAY);
++    LOG_DEBUG("[%s] Reading model code at address %02X register %02X, res=%02X",
++              FURY_CONTROLLER_NAME, slot_6x_addr, 6, model_code);
++
++    bus->i2c_smbus_write_byte_data(slot_6x_addr, FURY_REG_APPLY, FURY_END_TRNSFER);
++    std::this_thread::sleep_for(FURY_DELAY);
++    if (!passed) {
++        return false;
++    }
++
++    // TODO make these constants
++    if (model_code != 0x10     // Fury Beast
++        && model_code != 0x11) // Fury Renegade
++    {
++        LOG_DEBUG("[%s] Unknown model code", FURY_CONTROLLER_NAME);
++        return false;
++    }
++
++    return true;
++}
++
+ 
+ 
+ /******************************************************************************************\
+ *                                                                                          *
+-*   DetectKingstonFuryDRAMControllers                                                            *
++*   DetectKingstonFuryDRAMControllers                                                      *
+ *                                                                                          *
+-*       Detect Fury DRAM controllers on the enumerated I2C busses.                       *
++*       Detect Kingston Fury DDR5 DRAM controllers on the enumerated I2C busses.           *
+ *                                                                                          *
+ *           bus - pointer to i2c_smbus_interface where Aura device is connected            *
+ *           dev - I2C address of Aura device                                               *
+ *                                                                                          *
+ \******************************************************************************************/
+ 
+-void DetectKingstonFuryDRAMontrollers(std::vector<i2c_smbus_interface*> &busses)
++void DetectKingstonFuryDRAMControllers(std::vector<i2c_smbus_interface*> &busses)
+ {
+     for(unsigned int bus = 0; bus < busses.size(); bus++)
+     {
+ 
+         IF_DRAM_SMBUS(busses[bus]->pci_vendor, busses[bus]->pci_device)
+         {
+-                for(int slot_addr = 0x48; slot_addr <= 0x4b; slot_addr++)
++            for (int slot_index = 0; slot_index < 8; slot_index++)
++            {
++                int retries = 0;
++                bool success = false;
++                while (retries < 3 && !success)
+                 {
++                    success = TestForFuryDDR5(busses[bus], slot_index);
++                    retries++;
++                    std::this_thread::sleep_for(100ms);
++                }
+ 
+-                    int read_0x21 = busses[bus]->i2c_smbus_read_byte_data(slot_addr, 0x21);
+-                    int read_0x25 = busses[bus]->i2c_smbus_read_byte_data(slot_addr, 0x25);
+-                    int read_0x27 = busses[bus]->i2c_smbus_read_byte_data(slot_addr, 0x27);
+-
+-                    if((read_0x21 == 0x78) && (read_0x25 == 0x78) && (read_0x27 == 0x78))
+-                    {
+-                        LOG_DEBUG("[%s] SPD check success: addr of control reg: %d", FURY_CONTROLLER_NAME, 0x60+(slot_addr-0x48));
+-                        KingstonFuryDRAMController*     controller     = new KingstonFuryDRAMController(busses[bus], 0x60+(slot_addr-0x48), slot_addr-0x48);
+-                        RGBController_KingstonFuryDRAM* rgb_controller = new RGBController_KingstonFuryDRAM(controller);
+-                        rgb_controller->name = "Fury RGB";
+-
+-                        ResourceManager::get()->RegisterRGBController(rgb_controller);
+-                    }
+-                    else
+-                    {
+-                        LOG_DEBUG("[%s] SPD check failed", FURY_CONTROLLER_NAME);
+-                    }
+-
+-                    std::this_thread::sleep_for(1ms);
++                if (success) {
++                    LOG_DEBUG("[%s] detected at slot index %d",
++                              FURY_CONTROLLER_NAME, slot_index);
++                    KingstonFuryDRAMController*     controller     = new KingstonFuryDRAMController(busses[bus], 0x60+slot_index, slot_index);
++                    RGBController_KingstonFuryDRAM* rgb_controller = new RGBController_KingstonFuryDRAM(controller);
++                    rgb_controller->name = "Kingston Fury DDR5 RGB";
++
++                    ResourceManager::get()->RegisterRGBController(rgb_controller);
+                 }
++            }
++                // for(int slot_addr = 0x48; slot_addr <= 0x4b; slot_addr++)
++                // {
++
++                //     int read_0x21 = busses[bus]->i2c_smbus_read_byte_data(slot_addr, 0x21);
++                //     int read_0x25 = busses[bus]->i2c_smbus_read_byte_data(slot_addr, 0x25);
++                //     int read_0x27 = busses[bus]->i2c_smbus_read_byte_data(slot_addr, 0x27);
++
++                //     if((read_0x21 == 0x78) && (read_0x25 == 0x78) && (read_0x27 == 0x78))
++                //     {
++                //         LOG_DEBUG("[%s] SPD check success: addr of control reg: %d", FURY_CONTROLLER_NAME, 0x60+(slot_addr-0x48));
++                //         KingstonFuryDRAMController*     controller     = new KingstonFuryDRAMController(busses[bus], 0x60+(slot_addr-0x48), slot_addr-0x48);
++                //         RGBController_KingstonFuryDRAM* rgb_controller = new RGBController_KingstonFuryDRAM(controller);
++                //         rgb_controller->name = "Kingston Fury DDR5 RGB";
++
++                //         ResourceManager::get()->RegisterRGBController(rgb_controller);
++                //     }
++                //     else
++                //     {
++                //         LOG_DEBUG("[%s] SPD check failed", FURY_CONTROLLER_NAME);
++                //     }
++
++                //     std::this_thread::sleep_for(1ms);
++                // }
+         }
+     }
+ 
+ }   /* DetectHyperXDRAMControllers() */
+ 
+-REGISTER_I2C_DETECTOR("Fury DRAM", DetectKingstonFuryDRAMontrollers);
++REGISTER_I2C_DETECTOR("Kingston Fury DDR5 DRAM", DetectKingstonFuryDRAMControllers);
+-- 
+GitLab
+

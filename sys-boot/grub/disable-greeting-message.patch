@@ -1,0 +1,14 @@
+--- /grub-core/kern/main.c.original	2018-08-01 01:20:51.587850628 +0200
++++ /grub-core/kern/main.c	2018-08-01 01:21:53.546852156 +0200
+@@ -270,9 +270,11 @@
+   grub_boot_time ("After machine init.");
+ 
+   /* Hello.  */
++  /*
+   grub_setcolorstate (GRUB_TERM_COLOR_HIGHLIGHT);
+   grub_printf ("Welcome to GRUB!\n\n");
+   grub_setcolorstate (GRUB_TERM_COLOR_STANDARD);
++  */
+ 
+   grub_load_config ();
+ 

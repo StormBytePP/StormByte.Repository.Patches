@@ -1,0 +1,784 @@
+From ef9b2224680c1f97ef1f829b1b6ffd7038ea15aa Mon Sep 17 00:00:00 2001
+From: luka177 <lukapanio@gmail.com>
+Date: Wed, 16 Nov 2022 21:09:08 +0100
+Subject: [PATCH] Initial KingstonFuryDRAM support
+
+---
+ .../KingstonFuryDRAMController.cpp            | 268 +++++++++++++++++
+ .../KingstonFuryDRAMController.h              |  73 +++++
+ .../KingstonFuryDRAMControllerDetect.cpp      |  63 ++++
+ .../RGBController_KingstonFuryDRAM.cpp        | 272 ++++++++++++++++++
+ .../RGBController_KingstonFuryDRAM.h          |  33 +++
+ OpenRGB.pro                                   |   5 +
+ 6 files changed, 714 insertions(+)
+ create mode 100644 Controllers/KingstonFuryDRAM/KingstonFuryDRAMController.cpp
+ create mode 100644 Controllers/KingstonFuryDRAM/KingstonFuryDRAMController.h
+ create mode 100644 Controllers/KingstonFuryDRAM/KingstonFuryDRAMControllerDetect.cpp
+ create mode 100644 Controllers/KingstonFuryDRAM/RGBController_KingstonFuryDRAM.cpp
+ create mode 100644 Controllers/KingstonFuryDRAM/RGBController_KingstonFuryDRAM.h
+
+diff --git a/Controllers/KingstonFuryDRAM/KingstonFuryDRAMController.cpp b/Controllers/KingstonFuryDRAM/KingstonFuryDRAMController.cpp
+new file mode 100644
+index 000000000..4beae2192
+--- /dev/null
++++ b/Controllers/KingstonFuryDRAM/KingstonFuryDRAMController.cpp
+@@ -0,0 +1,268 @@
++/*-----------------------------------------*\
++|  HyperXDRAMController.cpp                 |
++|                                           |
++|  Definitions and types for HyperX Predator|
++|  and Fury RGB RAM lighting controller     |
++|                                           |
++|  Adam Honse (CalcProgrammer1) 6/29/2019   |
++\*-----------------------------------------*/
++
++#include "KingstonFuryDRAMController.h"
++#include <cstring>
++#include "LogManager.h"
++KingstonFuryDRAMController::KingstonFuryDRAMController(i2c_smbus_interface* bus, hyperx_dev_id dev, unsigned char slots)
++{
++    this->bus   = bus;
++    this->dev   = dev;
++    slots_valid = slots;
++
++    led_count = 5;
++
++  /*  for(unsigned int slot = 0; slot < 4; slot++)
++    {
++        if(((slots_valid & ( 0x01 << slot)) != 0)
++         ||((slots_valid & ( 0x10 << slot)) != 0))
++        {
++            led_count += 5;
++        }
++    }*/
++
++    mode = 0;
++}
++
++KingstonFuryDRAMController::~KingstonFuryDRAMController()
++{
++
++}
++
++std::string KingstonFuryDRAMController::GetDeviceLocation()
++{
++    std::string return_string(bus->device_name);
++    char addr[5];
++    snprintf(addr, 5, "0x%02X", dev);
++    return_string.append(", address ");
++    return_string.append(addr);
++    return("I2C: " + return_string);
++}
++
++unsigned KingstonFuryDRAMController::GetLEDCount()
++{
++    return(5);
++}
++
++unsigned int KingstonFuryDRAMController::GetSlotCount()
++{
++  unsigned int slot_count = 0;
++
++    for(int slot = 0; slot < 4; slot++)
++    {
++        if(((slots_valid & ( 0x01 << slot)) != 0)
++         ||((slots_valid & ( 0x10 << slot)) != 0))
++        {
++            slot_count++;
++        }
++    }
++
++    return(slot_count);
++}
++
++unsigned int KingstonFuryDRAMController::GetMode()
++{
++    return(FURY_MODE_STATIC);
++}
++
++void KingstonFuryDRAMController::SendApply()
++{
++    bus->i2c_smbus_write_byte_data(dev, FURY_REG_APPLY, FURY_END_TRNSFER);
++}
++
++void KingstonFuryDRAMController::SetEffectColor(unsigned char red, unsigned char green, unsigned char blue)
++{
++    LOG_DEBUG("[fury] Set color 1");
++bus->i2c_smbus_write_byte_data(dev, FURY_REG_APPLY, FURY_BEGIN_TRNSFER);
++                bus->i2c_smbus_write_byte_data(dev, FURY_REG_COLOR_R, red  );
++                bus->i2c_smbus_write_byte_data(dev, FURY_REG_COLOR_G, green);
++                bus->i2c_smbus_write_byte_data(dev, FURY_REG_COLOR_B, blue );
++
++    bus->i2c_smbus_write_byte_data(dev, FURY_REG_APPLY, FURY_END_TRNSFER);
++}
++
++void KingstonFuryDRAMController::SetAllColors(unsigned char red, unsigned char green, unsigned char blue)
++{
++    bus->i2c_smbus_write_byte_data(dev, FURY_REG_APPLY, FURY_BEGIN_TRNSFER);
++    LOG_DEBUG("[fury] Set color");
++    /*-----------------------------------------------------*\
++    | Loop through all slots and only set those which are   |
++    | active.                                               |
++    \*-----------------------------------------------------*/
++    for(unsigned int slot_idx = 0; slot_idx < 4; slot_idx++)
++    {
++        unsigned char slot = slot_map[slot_idx];
++
++        if(((slots_valid & ( 0x01 << slot)) != 0)
++         ||((slots_valid & ( 0x10 << slot)) != 0))
++        {
++
++            if(mode == FURY_MODE_STATIC)
++            {
++                bus->i2c_smbus_write_byte_data(dev, FURY_REG_MODE, FURY_MODE_STATIC);
++                bus->i2c_smbus_write_byte_data(dev, FURY_REG_COLOR_R, red  );
++                bus->i2c_smbus_write_byte_data(dev, FURY_REG_COLOR_G, green);
++                bus->i2c_smbus_write_byte_data(dev, FURY_REG_COLOR_B, blue );
++            }
++        }
++    }
++
++    bus->i2c_smbus_write_byte_data(dev, FURY_REG_APPLY, FURY_END_TRNSFER);
++}
++
++void KingstonFuryDRAMController::SetLEDColor(unsigned int led, unsigned char red, unsigned char green, unsigned char blue)
++{
++       bus->i2c_smbus_write_byte_data(dev, FURY_REG_APPLY, FURY_BEGIN_TRNSFER);
++LOG_DEBUG("[fury] Set color");
++    /*-----------------------------------------------------*\
++    | Loop through all slots and only set those which are   |
++    | active.                                               |
++    \*-----------------------------------------------------*/
++    for(unsigned int slot_idx = 0; slot_idx < 4; slot_idx++)
++    {
++        unsigned char slot = slot_map[slot_idx];
++
++        if(((slots_valid & ( 0x01 << slot)) != 0)
++         ||((slots_valid & ( 0x10 << slot)) != 0))
++        {
++
++            if(mode == FURY_MODE_STATIC)
++            {
++                bus->i2c_smbus_write_byte_data(dev, FURY_REG_MODE, FURY_MODE_STATIC);
++                bus->i2c_smbus_write_byte_data(dev, FURY_REG_COLOR_R, red  );
++                bus->i2c_smbus_write_byte_data(dev, FURY_REG_COLOR_G, green);
++                bus->i2c_smbus_write_byte_data(dev, FURY_REG_COLOR_B, blue );
++            }
++        }
++    }
++
++    bus->i2c_smbus_write_byte_data(dev, FURY_REG_APPLY, FURY_END_TRNSFER);
++}
++
++
++void KingstonFuryDRAMController::SetLEDColor(unsigned int slot, unsigned int led, unsigned char red, unsigned char green, unsigned char blue)
++{
++      bus->i2c_smbus_write_byte_data(dev, FURY_REG_APPLY, FURY_BEGIN_TRNSFER);
++LOG_DEBUG("[fury] Set color");
++    /*-----------------------------------------------------*\
++    | Loop through all slots and only set those which are   |
++    | active.                                               |
++    \*-----------------------------------------------------*/
++    for(unsigned int slot_idx = 0; slot_idx < 4; slot_idx++)
++    {
++        unsigned char slot = slot_map[slot_idx];
++
++        if(((slots_valid & ( 0x01 << slot)) != 0)
++         ||((slots_valid & ( 0x10 << slot)) != 0))
++        {
++
++            if(mode == FURY_MODE_STATIC)
++            {
++                bus->i2c_smbus_write_byte_data(dev, FURY_REG_MODE, FURY_MODE_STATIC);
++                bus->i2c_smbus_write_byte_data(dev, FURY_REG_COLOR_R, red  );
++                bus->i2c_smbus_write_byte_data(dev, FURY_REG_COLOR_G, green);
++                bus->i2c_smbus_write_byte_data(dev, FURY_REG_COLOR_B, blue );
++            }
++        }
++    }
++
++    bus->i2c_smbus_write_byte_data(dev, FURY_REG_APPLY, FURY_END_TRNSFER);
++}
++
++void KingstonFuryDRAMController::SetMode(unsigned char new_mode, bool random, unsigned short new_speed)
++{
++    mode  = new_mode;
++    speed = new_speed;
++LOG_DEBUG("[fury] Set mode");
++   // bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_APPLY, 0x01);
++
++    /*-----------------------------------------------------*\
++    | Determine which mode register to use.                 |
++    | If set to random color mode, use Mode1.               |
++    | If set to fixed color mode, use Mode2.                |
++    \*-----------------------------------------------------*/
++    unsigned char mode_reg;
++
++   /* if(random)
++    {
++        mode_reg = HYPERX_REG_MODE_RANDOM;
++    }
++    else
++    {
++        mode_reg = HYPERX_REG_MODE_CUSTOM;
++    }
++
++    switch (mode)
++    {
++    case HYPERX_MODE_DIRECT:
++        bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_MODE_INDEPENDENT, HYPERX_MODE3_DIRECT);
++        break;
++
++    case FURY_MODE_STATIC:
++        bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_MODE_CUSTOM, HYPERX_MODE2_STATIC);
++        break;
++
++    case HYPERX_MODE_RAINBOW:
++        bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_MODE_RANDOM, HYPERX_MODE1_RAINBOW);
++        bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_TIMER_MSB, speed >> 8);
++        bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_TIMER_LSB, speed & 0xFF);
++        break;
++
++    case HYPERX_MODE_COMET:
++        bus->i2c_smbus_write_byte_data(dev, mode_reg, HYPERX_MODE2_COMET);
++        bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_TIMER_MSB, speed >> 8);
++        bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_TIMER_LSB, speed & 0xFF);
++        break;
++
++    case HYPERX_MODE_HEARTBEAT:
++        bus->i2c_smbus_write_byte_data(dev, mode_reg, HYPERX_MODE2_HEARTBEAT);
++        bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_OFF_TIME_MSB, speed >> 8);
++        bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_OFF_TIME_LSB, speed & 0xFF);
++        bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_ON_TIME_MSB, speed >> 8);
++        bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_ON_TIME_LSB, speed & 0xFF);
++        bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_DELAY_TIME_MSB, 0x03);
++        bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_DELAY_TIME_LSB, 0xE8);
++        break;
++
++    case HYPERX_MODE_CYCLE:
++        bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_MODE_RANDOM, HYPERX_MODE1_CYCLE);
++        bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_ON_TIME_MSB, speed >> 8);
++        bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_ON_TIME_LSB, speed & 0xFF);
++        bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_CHANGE_TIME_MSB, speed >> 8);
++        bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_CHANGE_TIME_LSB, speed & 0xFF);
++        break;
++
++    case HYPERX_MODE_BREATHING:
++        bus->i2c_smbus_write_byte_data(dev, mode_reg, HYPERX_MODE2_BREATHING);
++        bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_FADE_IN_TIME_MSB, speed >> 8);
++        bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_FADE_IN_TIME_LSB, speed & 0xFF);
++        bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_FADE_OUT_TIME_MSB, speed >> 8);
++        bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_FADE_OUT_TIME_LSB, speed & 0xFF);
++        bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_OFF_TIME_MSB, 0x00);
++        bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_OFF_TIME_LSB, 0x00);
++        break;
++
++    case HYPERX_MODE_BOUNCE:
++        bus->i2c_smbus_write_byte_data(dev, mode_reg, HYPERX_MODE2_BOUNCE);
++        bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_TIMER_MSB, speed >> 8);
++        bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_TIMER_LSB, speed & 0xFF);
++        break;
++
++    case HYPERX_MODE_BLINK:
++        bus->i2c_smbus_write_byte_data(dev, mode_reg, HYPERX_MODE2_BLINK);
++        bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_OFF_TIME_MSB, speed >> 8);
++        bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_OFF_TIME_LSB, speed & 0xFF);
++        bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_ON_TIME_MSB, 0x07);
++        bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_ON_TIME_LSB, 0xD4);
++        break;
++    }
++
++    bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_APPLY, 0x02);
++    bus->i2c_smbus_write_byte_data(dev, HYPERX_REG_APPLY, 0x03);*/
++}
+diff --git a/Controllers/KingstonFuryDRAM/KingstonFuryDRAMController.h b/Controllers/KingstonFuryDRAM/KingstonFuryDRAMController.h
+new file mode 100644
+index 000000000..8d84e5354
+--- /dev/null
++++ b/Controllers/KingstonFuryDRAM/KingstonFuryDRAMController.h
+@@ -0,0 +1,73 @@
++/*-----------------------------------------*\
++|  HyperXDRAMController.h                   |
++|                                           |
++|  Definitions and types for HyperX Predator|
++|  and Fury RGB RAM lighting controller     |
++|                                           |
++|  Luka Panio (luka177) 11/12/2022          |
++\*-----------------------------------------*/
++
++#include <string>
++#include "i2c_smbus.h"
++
++#pragma once
++
++typedef unsigned char	hyperx_dev_id;
++typedef unsigned short	hyperx_register;
++
++enum
++{
++    FURY_REG_APPLY                    = 0x08,     /* Apply changes register               */
++    FURY_REG_COLOR_R                  = 0x31,     /* Apply changes register               */
++    FURY_REG_COLOR_G                  = 0x32,     /* Apply changes register               */
++    FURY_REG_COLOR_B                  = 0x33,     /* Apply changes register               */
++    FURY_REG_MODE                     = 0x09,
++};
++
++enum
++{
++    FURY_BEGIN_TRNSFER                = 0x53,     /* Begin writing data to register       */
++    FURY_END_TRNSFER                  = 0x44,     /* Begin writing data to register       */
++};
++
++enum
++{
++    FURY_MODE_STATIC                  = 0x00,     /* Begin writing data to register       */
++};
++
++static const unsigned char slot_map[4] =
++{
++    0,
++    2,
++    1,
++    3
++};
++
++class KingstonFuryDRAMController
++{
++public:
++    KingstonFuryDRAMController(i2c_smbus_interface* bus, hyperx_dev_id dev, unsigned char slots);
++    ~KingstonFuryDRAMController();
++
++    std::string     GetDeviceLocation();
++    unsigned int    GetLEDCount();
++    unsigned int    GetSlotCount();
++    unsigned int    GetMode();
++
++    void            SendApply();
++
++    void            SetMode(unsigned char new_mode, bool random, unsigned short new_speed);
++
++    void            SetAllColors(unsigned char red, unsigned char green, unsigned char blue);
++    void            SetEffectColor(unsigned char red, unsigned char green, unsigned char blue);
++    void            SetLEDColor(unsigned int led, unsigned char red, unsigned char green, unsigned char blue);
++    void            SetLEDColor(unsigned int slot, unsigned int led, unsigned char red, unsigned char green, unsigned char blue);
++
++private:
++    unsigned int            led_count;
++    unsigned char           slots_valid;
++    i2c_smbus_interface*    bus;
++    hyperx_dev_id           dev;
++    unsigned int            mode;
++    unsigned short          speed;
++};
+diff --git a/Controllers/KingstonFuryDRAM/KingstonFuryDRAMControllerDetect.cpp b/Controllers/KingstonFuryDRAM/KingstonFuryDRAMControllerDetect.cpp
+new file mode 100644
+index 000000000..4dca18b7d
+--- /dev/null
++++ b/Controllers/KingstonFuryDRAM/KingstonFuryDRAMControllerDetect.cpp
+@@ -0,0 +1,63 @@
++#include "Detector.h"
++#include "KingstonFuryDRAMController.h"
++#include "LogManager.h"
++#include "RGBController.h"
++#include "RGBController_KingstonFuryDRAM.h"
++#include "i2c_smbus.h"
++#include "pci_ids.h"
++#include <vector>
++#include <stdio.h>
++#include <stdlib.h>
++
++using namespace std::chrono_literals;
++
++#define FURY_CONTROLLER_NAME "Fury DRAM"
++
++
++/******************************************************************************************\
++*                                                                                          *
++*   DetectKingstonFuryDRAMControllers                                                            *
++*                                                                                          *
++*       Detect Fury DRAM controllers on the enumerated I2C busses.                       *
++*                                                                                          *
++*           bus - pointer to i2c_smbus_interface where Aura device is connected            *
++*           dev - I2C address of Aura device                                               *
++*                                                                                          *
++\******************************************************************************************/
++
++void DetectKingstonFuryDRAMontrollers(std::vector<i2c_smbus_interface*> &busses)
++{
++    for(unsigned int bus = 0; bus < busses.size(); bus++)
++    {
++
++        IF_DRAM_SMBUS(busses[bus]->pci_vendor, busses[bus]->pci_device)
++        {
++                for(int slot_addr = 0x48; slot_addr <= 0x4b; slot_addr++)
++                {
++
++                    int read_0x21 = busses[bus]->i2c_smbus_read_byte_data(slot_addr, 0x21);
++                    int read_0x25 = busses[bus]->i2c_smbus_read_byte_data(slot_addr, 0x25);
++                    int read_0x27 = busses[bus]->i2c_smbus_read_byte_data(slot_addr, 0x27);
++
++                    if((read_0x21 == 0x78) && (read_0x25 == 0x78) && (read_0x27 == 0x78))
++                    {
++                        LOG_DEBUG("[%s] SPD check success: addr of control reg: %d", FURY_CONTROLLER_NAME, 0x60+(slot_addr-0x48));
++                        KingstonFuryDRAMController*     controller     = new KingstonFuryDRAMController(busses[bus], 0x60+(slot_addr-0x48), slot_addr-0x48);
++                        RGBController_KingstonFuryDRAM* rgb_controller = new RGBController_KingstonFuryDRAM(controller);
++                        rgb_controller->name = "Fury RGB";
++
++                        ResourceManager::get()->RegisterRGBController(rgb_controller);
++                    }
++                    else
++                    {
++                        LOG_DEBUG("[%s] SPD check failed", FURY_CONTROLLER_NAME);
++                    }
++
++                    std::this_thread::sleep_for(1ms);
++                }
++        }
++    }
++
++}   /* DetectHyperXDRAMControllers() */
++
++REGISTER_I2C_DETECTOR("Fury DRAM", DetectKingstonFuryDRAMontrollers);
+diff --git a/Controllers/KingstonFuryDRAM/RGBController_KingstonFuryDRAM.cpp b/Controllers/KingstonFuryDRAM/RGBController_KingstonFuryDRAM.cpp
+new file mode 100644
+index 000000000..9696a99f5
+--- /dev/null
++++ b/Controllers/KingstonFuryDRAM/RGBController_KingstonFuryDRAM.cpp
+@@ -0,0 +1,272 @@
++/*-----------------------------------------*\
++|  RGBController_KingstonFuryDRAM.cpp       |
++|                                           |
++|  Generic RGB Interface for OpenAuraSDK    |
++|                      Fury RGB interface   |
++|                                           |
++|  Luka Panio (luka177) 11/12/2022          |
++\*-----------------------------------------*/
++
++#include "RGBController_KingstonFuryDRAM.h"
++#include "KingstonFuryDRAMController.h"
++
++/**------------------------------------------------------------------*\
++    @name Fury DRAM
++    @category RAM
++    @type I2C
++    @save :x:
++    @direct :white_check_mark:
++    @effects :white_check_mark:
++    @detectors DetectHyperXDRAMControllers
++    @comment
++\*-------------------------------------------------------------------*/
++
++RGBController_KingstonFuryDRAM::RGBController_KingstonFuryDRAM(KingstonFuryDRAMController* controller_ptr)
++{
++    controller  = controller_ptr;
++
++    name        = "Fury DRAM";
++    vendor      = "Kingston";
++    type        = DEVICE_TYPE_DRAM;
++    description = "Kingston Fury Beast DRAM Device";
++    location    = controller->GetDeviceLocation();
++
++   /* mode Direct;
++    Direct.name       = "Direct";
++    Direct.value      = HYPERX_MODE_DIRECT;
++    Direct.flags      = MODE_FLAG_HAS_PER_LED_COLOR;
++    Direct.color_mode = MODE_COLORS_PER_LED;
++    modes.push_back(Direct);*/
++
++    mode Static;
++    Static.name       = "Static";
++    Static.value      = FURY_MODE_STATIC;
++    Static.flags      = MODE_FLAG_HAS_MODE_SPECIFIC_COLOR;
++    Static.colors_min = 1;
++    Static.colors_max = 1;
++    Static.color_mode = MODE_COLORS_MODE_SPECIFIC;
++    Static.colors.resize(1);
++    modes.push_back(Static);
++
++    /*mode Rainbow;
++    Rainbow.name       = "Rainbow";
++    Rainbow.value      = HYPERX_MODE_RAINBOW;
++    Rainbow.flags      = MODE_FLAG_HAS_SPEED;
++    Rainbow.speed_min  = HYPERX_SPEED_RAINBOW_SLOW;
++    Rainbow.speed_max  = HYPERX_SPEED_RAINBOW_FAST;
++    Rainbow.speed      = HYPERX_SPEED_RAINBOW_NORMAL;
++    Rainbow.color_mode = MODE_COLORS_NONE;
++    modes.push_back(Rainbow);
++
++    mode Comet;
++    Comet.name       = "Comet";
++    Comet.value      = HYPERX_MODE_COMET;
++    Comet.flags      = MODE_FLAG_HAS_SPEED | MODE_FLAG_HAS_MODE_SPECIFIC_COLOR | MODE_FLAG_HAS_RANDOM_COLOR;
++    Comet.speed_min  = HYPERX_SPEED_COMET_SLOW;
++    Comet.speed_max  = HYPERX_SPEED_COMET_FAST;
++    Comet.colors_min = 1;
++    Comet.colors_max = 1;
++    Comet.speed      = HYPERX_SPEED_COMET_NORMAL;
++    Comet.color_mode = MODE_COLORS_MODE_SPECIFIC;
++    Comet.colors.resize(1);
++    modes.push_back(Comet);
++
++    mode Heartbeat;
++    Heartbeat.name       = "Heartbeat";
++    Heartbeat.value      = HYPERX_MODE_HEARTBEAT;
++    Heartbeat.flags      = MODE_FLAG_HAS_SPEED | MODE_FLAG_HAS_MODE_SPECIFIC_COLOR | MODE_FLAG_HAS_RANDOM_COLOR;
++    Heartbeat.speed_min  = HYPERX_SPEED_COMET_SLOW;
++    Heartbeat.speed_max  = HYPERX_SPEED_COMET_FAST;
++    Heartbeat.colors_min = 1;
++    Heartbeat.colors_max = 1;
++    Heartbeat.speed      = HYPERX_SPEED_COMET_NORMAL;
++    Heartbeat.color_mode = MODE_COLORS_MODE_SPECIFIC;
++    Heartbeat.colors.resize(1);
++    modes.push_back(Heartbeat);
++
++    mode SpectrumCycle;
++    SpectrumCycle.name       = "Spectrum Cycle";
++    SpectrumCycle.value      = HYPERX_MODE_CYCLE;
++    SpectrumCycle.flags      = MODE_FLAG_HAS_SPEED;
++    SpectrumCycle.speed_min  = HYPERX_SPEED_CYCLE_SLOW;
++    SpectrumCycle.speed_max  = HYPERX_SPEED_CYCLE_FAST;
++    SpectrumCycle.speed      = HYPERX_SPEED_CYCLE_NORMAL;
++    SpectrumCycle.color_mode = MODE_COLORS_NONE;
++    modes.push_back(SpectrumCycle);
++
++    mode Breathing;
++    Breathing.name       = "Breathing";
++    Breathing.value      = HYPERX_MODE_BREATHING;
++    Breathing.flags      = MODE_FLAG_HAS_SPEED | MODE_FLAG_HAS_MODE_SPECIFIC_COLOR | MODE_FLAG_HAS_RANDOM_COLOR;
++    Breathing.speed_min  = HYPERX_SPEED_BREATHING_SLOW;
++    Breathing.speed_max  = HYPERX_SPEED_BREATHING_FAST;
++    Breathing.colors_min = 1;
++    Breathing.colors_max = 1;
++    Breathing.speed      = HYPERX_SPEED_BREATHING_NORMAL;
++    Breathing.color_mode = MODE_COLORS_MODE_SPECIFIC;
++    Breathing.colors.resize(1);
++    modes.push_back(Breathing);
++
++    mode Bounce;
++    Bounce.name       = "Bounce";
++    Bounce.value      = HYPERX_MODE_BOUNCE;
++    Bounce.flags      = MODE_FLAG_HAS_SPEED | MODE_FLAG_HAS_MODE_SPECIFIC_COLOR | MODE_FLAG_HAS_RANDOM_COLOR;
++    Bounce.speed_min  = HYPERX_SPEED_BOUNCE_SLOW;
++    Bounce.speed_max  = HYPERX_SPEED_BOUNCE_FAST;
++    Bounce.colors_min = 1;
++    Bounce.colors_max = 1;
++    Bounce.speed      = HYPERX_SPEED_BOUNCE_NORMAL;
++    Bounce.color_mode = MODE_COLORS_MODE_SPECIFIC;
++    Bounce.colors.resize(1);
++    modes.push_back(Bounce);
++
++    mode Blink;
++    Blink.name       = "Blink";
++    Blink.value      = HYPERX_MODE_BLINK;
++    Blink.flags      = MODE_FLAG_HAS_SPEED | MODE_FLAG_HAS_MODE_SPECIFIC_COLOR | MODE_FLAG_HAS_RANDOM_COLOR;
++    Blink.speed_min  = HYPERX_SPEED_BLINK_SLOW;
++    Blink.speed_max  = HYPERX_SPEED_BLINK_FAST;
++    Blink.colors_min = 1;
++    Blink.colors_max = 1;
++    Blink.speed      = HYPERX_SPEED_BLINK_NORMAL;
++    Blink.color_mode = MODE_COLORS_MODE_SPECIFIC;
++    Blink.colors.resize(1);
++    modes.push_back(Blink);*/
++
++    SetupZones();
++}
++
++RGBController_KingstonFuryDRAM::~RGBController_KingstonFuryDRAM()
++{
++    delete controller;
++}
++
++void RGBController_KingstonFuryDRAM::SetupZones()
++{
++    for(unsigned int slot = 0; slot < controller->GetSlotCount(); slot++)
++    {
++        zone* new_zone          = new zone;
++
++        new_zone->name          = "Fury Slot ";
++        new_zone->name.append(std::to_string(slot + 1));
++        new_zone->type          = ZONE_TYPE_LINEAR;
++        new_zone->leds_min      = 5;
++        new_zone->leds_max      = 5;
++        new_zone->leds_count    = 5;
++        new_zone->matrix_map    = NULL;
++
++        zones.push_back(*new_zone);
++    }
++
++    for(std::size_t zone_idx = 0; zone_idx < zones.size(); zone_idx++)
++    {
++        for(std::size_t led_idx = 0; led_idx < zones[zone_idx].leds_count; led_idx++)
++        {
++            led* new_led        = new led();
++
++            new_led->name       = "Fury Slot ";
++            new_led->name.append(std::to_string(zone_idx + 1));
++            new_led->name.append(", LED ");
++            new_led->name.append(std::to_string(led_idx + 1));
++
++            new_led->value      = leds.size();
++
++            leds.push_back(*new_led);
++        }
++    }
++
++    SetupColors();
++}
++
++void RGBController_KingstonFuryDRAM::ResizeZone(int /*zone*/, int /*new_size*/)
++{
++    /*---------------------------------------------------------*\
++    | This device does not support resizing zones               |
++    \*---------------------------------------------------------*/
++}
++
++void RGBController_KingstonFuryDRAM::DeviceUpdateLEDs()
++{
++    if(controller->GetMode() == FURY_MODE_STATIC)
++    {
++        for (std::size_t led_idx = 0; led_idx < colors.size(); led_idx++ )
++        {
++            RGBColor      color = colors[led_idx];
++            unsigned char red   = RGBGetRValue(color);
++            unsigned char grn   = RGBGetGValue(color);
++            unsigned char blu   = RGBGetBValue(color);
++
++            controller->SetLEDColor(led_idx, red, grn, blu);
++        }
++        controller->SendApply();
++    }
++    else
++    {
++        unsigned char red = RGBGetRValue(colors[0]);
++        unsigned char grn = RGBGetGValue(colors[0]);
++        unsigned char blu = RGBGetBValue(colors[0]);
++
++        controller->SetEffectColor(red, grn, blu);
++    }
++}
++
++void RGBController_KingstonFuryDRAM::UpdateZoneLEDs(int zone)
++{
++    if(controller->GetMode() == FURY_MODE_STATIC)
++    {
++        for (std::size_t led_idx = 0; led_idx < zones[zone].leds_count; led_idx++ )
++        {
++            unsigned int  led   = zones[zone].leds[led_idx].value;
++            RGBColor      color = colors[led];
++            unsigned char red   = RGBGetRValue(color);
++            unsigned char grn   = RGBGetGValue(color);
++            unsigned char blu   = RGBGetBValue(color);
++
++            controller->SetLEDColor(led, red, grn, blu);
++        }
++        controller->SendApply();
++    }
++    else
++    {
++        unsigned char red = RGBGetRValue(colors[0]);
++        unsigned char grn = RGBGetGValue(colors[0]);
++        unsigned char blu = RGBGetBValue(colors[0]);
++
++        controller->SetEffectColor(red, grn, blu);
++    }
++}
++
++void RGBController_KingstonFuryDRAM::UpdateSingleLED(int led)
++{
++    RGBColor      color = colors[led];
++    unsigned char red   = RGBGetRValue(color);
++    unsigned char grn   = RGBGetGValue(color);
++    unsigned char blu   = RGBGetBValue(color);
++
++    if(controller->GetMode() == FURY_MODE_STATIC)
++    {
++        controller->SetLEDColor(led, red, grn, blu);
++    }
++    else
++    {
++        controller->SetEffectColor(red, grn, blu);
++    }
++    controller->SendApply();
++}
++
++void RGBController_KingstonFuryDRAM::DeviceUpdateMode()
++{
++    bool random = (modes[active_mode].color_mode == MODE_COLORS_RANDOM);
++
++    controller->SetMode(modes[active_mode].value, random, modes[active_mode].speed);
++
++    if(modes[active_mode].color_mode == MODE_COLORS_MODE_SPECIFIC)
++    {
++        unsigned char red = RGBGetRValue(modes[active_mode].colors[0]);
++        unsigned char grn = RGBGetGValue(modes[active_mode].colors[0]);
++        unsigned char blu = RGBGetBValue(modes[active_mode].colors[0]);
++
++        controller->SetEffectColor(red, grn, blu);
++    }
++}
++
+diff --git a/Controllers/KingstonFuryDRAM/RGBController_KingstonFuryDRAM.h b/Controllers/KingstonFuryDRAM/RGBController_KingstonFuryDRAM.h
+new file mode 100644
+index 000000000..4441b4e8e
+--- /dev/null
++++ b/Controllers/KingstonFuryDRAM/RGBController_KingstonFuryDRAM.h
+@@ -0,0 +1,33 @@
++/*-----------------------------------------*\
++|  RGBController_HyperXDRAM.h               |
++|                                           |
++|  Generic RGB Interface for OpenAuraSDK    |
++|  HyperX Predator and Fury RGB interface   |
++|                                           |
++|  Adam Honse (CalcProgrammer1) 6/29/2019   |
++\*-----------------------------------------*/
++
++#pragma once
++
++#include "RGBController.h"
++#include "KingstonFuryDRAMController.h"
++
++class RGBController_KingstonFuryDRAM : public RGBController
++{
++public:
++    RGBController_KingstonFuryDRAM(KingstonFuryDRAMController* controller_ptr);
++    ~RGBController_KingstonFuryDRAM();
++
++    void        SetupZones();
++
++    void        ResizeZone(int zone, int new_size);
++
++    void        DeviceUpdateLEDs();
++    void        UpdateZoneLEDs(int zone);
++    void        UpdateSingleLED(int led);
++
++    void        DeviceUpdateMode();
++
++private:
++    KingstonFuryDRAMController* controller;
++};
+diff --git a/OpenRGB.pro b/OpenRGB.pro
+index c79f8752d..7502d64cc 100644
+--- a/OpenRGB.pro
++++ b/OpenRGB.pro
+@@ -500,6 +500,8 @@ HEADERS +=
+     Controllers/KasaSmartController/RGBController_KasaSmart.h                                   \
+     Controllers/KeychronKeyboardController/KeychronKeyboardController.h                         \
+     Controllers/KeychronKeyboardController/RGBController_KeychronKeyboard.h                     \
++    Controllers/KingstonFuryDRAM/KingstonFuryDRAMController.h                                   \
++    Controllers/KingstonFuryDRAM/RGBController_KingstonFuryDRAM.h                               \
+     Controllers/LEDStripController/LEDStripController.h                                         \
+     Controllers/LEDStripController/RGBController_LEDStrip.h                                     \
+     Controllers/LenovoControllers/LenovoDevices.h                                               \
+@@ -1132,6 +1134,9 @@ SOURCES +=
+     Controllers/KeychronKeyboardController/KeychronKeyboardController.cpp                       \
+     Controllers/KeychronKeyboardController/KeychronKeyboardControllerDetect.cpp                 \
+     Controllers/KeychronKeyboardController/RGBController_KeychronKeyboard.cpp                   \
++    Controllers/KingstonFuryDRAM/KingstonFuryDRAMController.cpp                                 \
++    Controllers/KingstonFuryDRAM/KingstonFuryDRAMControllerDetect.cpp                           \
++    Controllers/KingstonFuryDRAM/RGBController_KingstonFuryDRAM.cpp                             \
+     Controllers/LEDStripController/LEDStripController.cpp                                       \
+     Controllers/LEDStripController/LEDStripControllerDetect.cpp                                 \
+     Controllers/LEDStripController/RGBController_LEDStrip.cpp                                   \
+-- 
+GitLab
+

@@ -1,0 +1,350 @@
+From 19cd4ab85a1db9612fbd9bec3e1bac90e7993175 Mon Sep 17 00:00:00 2001
+From: Geoffrey Mon <geofbot@gmail.com>
+Date: Wed, 24 May 2023 20:24:50 -0500
+Subject: [PATCH] Fury: separate static and direct modes; rain mode
+
+---
+ .../KingstonFuryDRAMController.cpp            | 108 ++++++++++++------
+ .../KingstonFuryDRAMController.h              |  17 ++-
+ .../RGBController_KingstonFuryDRAM.cpp        |  69 ++++++++---
+ 3 files changed, 137 insertions(+), 57 deletions(-)
+
+diff --git a/Controllers/KingstonFuryDRAMController/KingstonFuryDRAMController.cpp b/Controllers/KingstonFuryDRAMController/KingstonFuryDRAMController.cpp
+index b1c999348..47d3490c3 100644
+--- a/Controllers/KingstonFuryDRAMController/KingstonFuryDRAMController.cpp
++++ b/Controllers/KingstonFuryDRAMController/KingstonFuryDRAMController.cpp
+@@ -1,4 +1,5 @@
+ #include "KingstonFuryDRAMController.h"
++#include "RGBController.h"
+ #include <cstring>
+ #include <vector>
+ #include "LogManager.h"
+@@ -45,17 +46,24 @@ unsigned int KingstonFuryDRAMController::GetMode()
+     return mode;
+ }
+ 
+-void KingstonFuryDRAMController::SendPreamble()
++void KingstonFuryDRAMController::SendPreamble(bool rain_mode)
+ {
+     SendBegin();
+ 
+-    // TODO rain/firework modes set all indices to 0
+     for (int idx = 0; idx < slots.size(); idx++)
+     {
+-        // Stick with index 0 takes command over all other sticks
+-        // (presumably using the advertised infrared syncing).
+-        // The official software writes the indices in decreasing order.
+-        char written_index = slots.size() - (idx + 1);
++        char written_index;
++        if (rain_mode)
++        {
++            // rain mode sets all indices to 0 so that the
++            // individual sticks will go out of sync with each other
++            written_index = 0;
++        } else {
++            // Stick with index 0 takes command over all other sticks
++            // (presumably using the advertised infrared syncing).
++            // The official software writes the indices in decreasing order.
++            written_index = slots.size() - (idx + 1);
++        }
+         int res = bus->i2c_smbus_write_byte_data(0x60 + slots[idx],
+                                                  FURY_REG_INDEX,
+                                                  written_index);
+@@ -100,28 +108,12 @@ void KingstonFuryDRAMController::SendApply()
+ void KingstonFuryDRAMController::SetModeCode(unsigned char val)
+ {
+     mode = val;
+-    for (int idx = 0; idx < slots.size(); idx++)
+-    {
+-        int res = bus->i2c_smbus_write_byte_data(0x60 + slots[idx],
+-                                                 FURY_REG_MODE,
+-                                                 val);
+-        LOG_DEBUG("[%s] %02X setting mode %02X; res=%02X",
+-                  FURY_CONTROLLER_NAME, 0x60 + slots[idx], val, res);
+-    }
+-    std::this_thread::sleep_for(FURY_DELAY);
++    SetRegister(FURY_REG_MODE, val);
+ }
+ 
+ void KingstonFuryDRAMController::SetNumSlots()
+ {
+-    for (int idx = 0; idx < slots.size(); idx++)
+-    {
+-        int res = bus->i2c_smbus_write_byte_data(0x60 + slots[idx],
+-                                                 FURY_REG_NUM_SLOTS,
+-                                                 slots.size());
+-        LOG_DEBUG("[%s] %02X sending number of DIMMs %d; res=%02X",
+-                  FURY_CONTROLLER_NAME, 0x60 + slots[idx], slots.size(), res);
+-    }
+-    std::this_thread::sleep_for(FURY_DELAY);
++    SetRegister(FURY_REG_NUM_SLOTS, slots.size());
+ }
+ 
+ void KingstonFuryDRAMController::SetRegister(int reg, unsigned char val)
+@@ -137,23 +129,63 @@ void KingstonFuryDRAMController::SetRegister(int reg, unsigned char val)
+     std::this_thread::sleep_for(FURY_DELAY);
+ }
+ 
+-
+-void KingstonFuryDRAMController::SetLEDColor(unsigned int slot, unsigned int led, unsigned char red, unsigned char green, unsigned char blue)
++void KingstonFuryDRAMController::SetModeColors(std::vector<RGBColor> colors)
+ {
+-    // TODO set each slot at the "same time" to reduce delays
+-    if (slot < 0 || slot >= slots.size()) {
++    if (colors.empty() || colors.size() > FURY_MAX_MODE_COLORS)
++    {
+         return;
+     }
+-    if (led < 0 || led >= FURY_LEDS_PER_DIMM) {
++    SetRegister(FURY_REG_NUM_COLORS, colors.size());
++    for (int idx = 0; idx < colors.size(); idx++)
++    {
++        RGBColor color = colors[idx];
++        unsigned char red = RGBGetRValue(color);
++        unsigned char green = RGBGetGValue(color);
++        unsigned char blue = RGBGetBValue(color);
++
++        int red_idx = FURY_REG_MODE_BASE_RED + idx * 3;
++        int green_idx = FURY_REG_MODE_BASE_GREEN + idx * 3;
++        int blue_idx = FURY_REG_MODE_BASE_BLUE + idx * 3;
++        SetRegister(red_idx, red);
++        SetRegister(green_idx, green);
++        SetRegister(blue_idx, blue);
++    }
++}
++
++void KingstonFuryDRAMController::SetLEDColors(std::vector<RGBColor> colors)
++{
++    if (colors.size() != GetLEDCount())
++    {
+         return;
+     }
+-    int red_register = FURY_REG_BASE_RED + 3 * led;
+-    int green_register = FURY_REG_BASE_GREEN + 3 * led;
+-    int blue_register = FURY_REG_BASE_BLUE + 3 * led;
+-    bus->i2c_smbus_write_byte_data(0x60 + slots[slot], red_register, red  );
+-    std::this_thread::sleep_for(FURY_DELAY);
+-    bus->i2c_smbus_write_byte_data(0x60 + slots[slot], green_register, green);
+-    std::this_thread::sleep_for(FURY_DELAY);
+-    bus->i2c_smbus_write_byte_data(0x60 + slots[slot], blue_register, blue );
+-    std::this_thread::sleep_for(FURY_DELAY);
++    for (int led_idx = 0; led_idx < FURY_LEDS_PER_DIMM; led_idx++)
++    {
++        int red_register = FURY_REG_BASE_RED + 3 * led_idx;
++        int green_register = FURY_REG_BASE_GREEN + 3 * led_idx;
++        int blue_register = FURY_REG_BASE_BLUE + 3 * led_idx;
++
++        for (int slot_idx = 0; slot_idx < GetSlotCount(); slot_idx++)
++        {
++            RGBColor color = colors[slot_idx * FURY_LEDS_PER_DIMM + led_idx];
++            unsigned char red = RGBGetRValue(color);
++            bus->i2c_smbus_write_byte_data(0x60 + slots[slot_idx], red_register, red);
++        }
++        std::this_thread::sleep_for(FURY_DELAY);
++
++        for (int slot_idx = 0; slot_idx < GetSlotCount(); slot_idx++)
++        {
++            RGBColor color = colors[slot_idx * FURY_LEDS_PER_DIMM + led_idx];
++            unsigned char green = RGBGetGValue(color);
++            bus->i2c_smbus_write_byte_data(0x60 + slots[slot_idx], green_register, green);
++        }
++        std::this_thread::sleep_for(FURY_DELAY);
++
++        for (int slot_idx = 0; slot_idx < GetSlotCount(); slot_idx++)
++        {
++            RGBColor color = colors[slot_idx * FURY_LEDS_PER_DIMM + led_idx];
++            unsigned char blue = RGBGetBValue(color);
++            bus->i2c_smbus_write_byte_data(0x60 + slots[slot_idx], blue_register, blue);
++        }
++        std::this_thread::sleep_for(FURY_DELAY);
++    }
+ }
+diff --git a/Controllers/KingstonFuryDRAMController/KingstonFuryDRAMController.h b/Controllers/KingstonFuryDRAMController/KingstonFuryDRAMController.h
+index 81d505e27..2419c918e 100644
+--- a/Controllers/KingstonFuryDRAMController/KingstonFuryDRAMController.h
++++ b/Controllers/KingstonFuryDRAMController/KingstonFuryDRAMController.h
+@@ -10,6 +10,7 @@
+ #include <string>
+ #include <vector>
+ #include "i2c_smbus.h"
++#include "RGBController.h"
+ 
+ #pragma once
+ 
+@@ -18,6 +19,7 @@
+ #define FURY_DELAY std::chrono::milliseconds(30)
+ #define FURY_MAX_SLOTS 4
+ #define FURY_LEDS_PER_DIMM 12
++#define FURY_MAX_MODE_COLORS 10
+ 
+ typedef unsigned char	hyperx_dev_id;
+ typedef unsigned short	hyperx_register;
+@@ -37,7 +39,12 @@ enum
+     FURY_REG_DELAY                    = 0x0D,
+     FURY_REG_SPEED                    = 0x0E,
+     FURY_REG_BRIGHTNESS               = 0x20,
++    FURY_REG_LENGTH                   = 0x26,
+     FURY_REG_NUM_SLOTS                = 0x27,
++    FURY_REG_NUM_COLORS               = 0x30,
++    FURY_REG_MODE_BASE_RED            = 0x31,
++    FURY_REG_MODE_BASE_GREEN          = 0x32,
++    FURY_REG_MODE_BASE_BLUE           = 0x33,
+     FURY_REG_BASE_RED                 = 0x50,
+     FURY_REG_BASE_GREEN               = 0x51,
+     FURY_REG_BASE_BLUE                = 0x52,
+@@ -51,8 +58,10 @@ enum
+ 
+ enum
+ {
+-    FURY_MODE_STATIC                  = 0x10, // static mode with individual colors
++    FURY_MODE_STATIC                  = 0x00,
++    FURY_MODE_DIRECT                  = 0x10,
+     FURY_MODE_RAINBOW                 = 0x01,
++    FURY_MODE_RAIN                    = 0x06,
+ };
+ 
+ enum
+@@ -72,15 +81,15 @@ public:
+     unsigned int    GetSlotCount();
+     unsigned int    GetMode();
+ 
+-    void            SendPreamble();
++    void            SendPreamble(bool rain_mode);
+     void            SendBegin();
+     void            SendApply();
+     void            SetModeCode(unsigned char val);
+     void            SetNumSlots();
+ 
+     void            SetRegister(int reg, unsigned char val);
+-    void            SetLEDColor(unsigned int slot_idx, unsigned int led_idx,
+-                                unsigned char red, unsigned char green, unsigned char blue);
++    void            SetModeColors(std::vector<RGBColor> colors);
++    void            SetLEDColors(std::vector<RGBColor> colors);
+ 
+ private:
+     i2c_smbus_interface*    bus;
+diff --git a/Controllers/KingstonFuryDRAMController/RGBController_KingstonFuryDRAM.cpp b/Controllers/KingstonFuryDRAMController/RGBController_KingstonFuryDRAM.cpp
+index 915a978a4..820d1482d 100644
+--- a/Controllers/KingstonFuryDRAMController/RGBController_KingstonFuryDRAM.cpp
++++ b/Controllers/KingstonFuryDRAMController/RGBController_KingstonFuryDRAM.cpp
+@@ -29,11 +29,24 @@ RGBController_KingstonFuryDRAM::RGBController_KingstonFuryDRAM(KingstonFuryDRAMC
+     description = "Kingston Fury Beast/Renegade DDR5 DRAM Device";
+     location    = controller->GetDeviceLocation();
+ 
++    mode Direct;
++    Direct.name       = "Direct";
++    Direct.value      = FURY_MODE_DIRECT;
++    Direct.flags      = MODE_FLAG_HAS_PER_LED_COLOR | MODE_FLAG_HAS_BRIGHTNESS;
++    Direct.color_mode = MODE_COLORS_PER_LED;
++    Direct.brightness_min = 0;
++    Direct.brightness_max = 100;
++    Direct.brightness = 80;
++    modes.push_back(Direct);
++
+     mode Static;
+     Static.name       = "Static";
+     Static.value      = FURY_MODE_STATIC;
+-    Static.flags      = MODE_FLAG_HAS_PER_LED_COLOR | MODE_FLAG_HAS_BRIGHTNESS;
+-    Static.color_mode = MODE_COLORS_PER_LED;
++    Static.flags      = MODE_FLAG_HAS_MODE_SPECIFIC_COLOR | MODE_FLAG_HAS_BRIGHTNESS;
++    Static.color_mode = MODE_COLORS_MODE_SPECIFIC;
++    Static.colors_min = 1;
++    Static.colors_max = 1;
++    Static.colors.resize(1);
+     Static.brightness_min = 0;
+     Static.brightness_max = 100;
+     Static.brightness = 80;
+@@ -54,6 +67,22 @@ RGBController_KingstonFuryDRAM::RGBController_KingstonFuryDRAM(KingstonFuryDRAMC
+     Rainbow.color_mode = MODE_COLORS_NONE;
+     modes.push_back(Rainbow);
+ 
++    mode Rain;
++    Rain.name       = "Rain";
++    Rain.value      = FURY_MODE_RAIN;
++    Rain.flags      = MODE_FLAG_HAS_MODE_SPECIFIC_COLOR | MODE_FLAG_HAS_SPEED |
++        MODE_FLAG_HAS_BRIGHTNESS | MODE_FLAG_HAS_DIRECTION_UD;
++    Rain.color_mode = MODE_COLORS_MODE_SPECIFIC;
++    Rain.colors_min = 1;
++    Rain.colors_max = 10;
++    Rain.colors.resize(10);
++    Rain.speed_min  = 0x27; // speed values are inverted
++    Rain.speed_max  = 0x13;
++    Rain.speed      = 25;
++    Rain.brightness_min = 0;
++    Rain.brightness_max = 100;
++    Rain.brightness = 80;
++    modes.push_back(Rain);
+     SetupZones();
+ }
+ 
+@@ -104,26 +133,21 @@ void RGBController_KingstonFuryDRAM::ResizeZone(int /*zone*/, int /*new_size*/)
+     /*---------------------------------------------------------*\
+     | This device does not support resizing zones               |
+     \*---------------------------------------------------------*/
++    LOG_DEBUG("[%s] resize zone",
++              FURY_CONTROLLER_NAME);
+ }
+ 
+ void RGBController_KingstonFuryDRAM::DeviceUpdateLEDs()
+ {
+     controller->SendBegin();
+     controller->SetModeCode(modes[active_mode].value);
++
+     switch(modes[active_mode].value)
+     {
+     case FURY_MODE_STATIC:
+-        for (int slot = 0; slot < controller->GetSlotCount(); slot++)
+-        {
+-            for (int led_idx = 0; led_idx < zones[slot].leds_count; led_idx++)
+-            {
+-                RGBColor color = colors[slot * FURY_LEDS_PER_DIMM + led_idx];
+-                unsigned char red = RGBGetRValue(color);
+-                unsigned char green = RGBGetGValue(color);
+-                unsigned char blue = RGBGetBValue(color);
+-                controller->SetLEDColor(slot, led_idx, red, green, blue);
+-            }
+-        }
++        controller->SetRegister(FURY_REG_DIRECTION, FURY_DIR_BOTTOM_TO_TOP);
++        controller->SetRegister(FURY_REG_DELAY, 0);
++        controller->SetRegister(FURY_REG_SPEED, 0);
+         break;
+ 
+     case FURY_MODE_RAINBOW:
+@@ -131,6 +155,21 @@ void RGBController_KingstonFuryDRAM::DeviceUpdateLEDs()
+         controller->SetRegister(FURY_REG_DELAY, 0);
+         break;
+ 
++    case FURY_MODE_RAIN:
++        // TODO constants
++        controller->SetRegister(FURY_REG_DELAY, 0);
++        controller->SetRegister(FURY_REG_LENGTH, 3);
++        break;
++    }
++
++    if (modes[active_mode].color_mode == MODE_COLORS_PER_LED)
++    {
++        controller->SetLEDColors(colors);
++    }
++
++    if (modes[active_mode].color_mode == MODE_COLORS_MODE_SPECIFIC)
++    {
++        controller->SetModeColors(modes[active_mode].colors);
+     }
+ 
+     if (modes[active_mode].flags & MODE_FLAG_HAS_DIRECTION_UD)
+@@ -171,10 +210,10 @@ void RGBController_KingstonFuryDRAM::DeviceUpdateMode()
+ {
+     LOG_DEBUG("[%s] device update mode",
+               FURY_CONTROLLER_NAME);
+-    // preamble only necessary when changing modes
++    // Preamble only necessary when changing modes.
+     if (modes[active_mode].value != controller->GetMode())
+     {
+-        controller->SendPreamble();
++        controller->SendPreamble(modes[active_mode].value == FURY_MODE_RAIN);
+     }
+     DeviceUpdateLEDs();
+ }
+-- 
+GitLab
+
