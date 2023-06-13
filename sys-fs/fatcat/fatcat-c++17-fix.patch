@@ -1,0 +1,18 @@
+--- a/src/FatUtils.h	2023-06-13 23:25:19.457265738 +0200
++++ b/src/FatUtils.h	2023-06-13 23:26:02.754594330 +0200
+@@ -32,13 +32,13 @@
+ 
+ // trim from start
+ static inline string ltrim(string s) {
+-  s.erase(s.begin(), find_if(s.begin(), s.end(), not1(ptr_fun<int, int>(isspace))));
++  s.erase(s.begin(), find_if(s.begin(), s.end(), [](unsigned char c){ return !std::isspace(c); }));
+   return s;
+ }
+ 
+ // trim from end
+ static inline string rtrim(string s) {
+-  s.erase(find_if(s.rbegin(), s.rend(), not1(ptr_fun<int, int>(isspace))).base(), s.end());
++  s.erase(find_if(s.rbegin(), s.rend(), [](unsigned char c){ return !std::isspace(c); }).base(), s.end());
+   return s;
+ }
+ 
