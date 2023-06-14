@@ -1,0 +1,60 @@
+--- a/prnt/hpcups/Mode9.cpp	2023-06-14 19:08:38.143165091 +0200
++++ b/prnt/hpcups/Mode9.cpp	2023-06-14 19:08:52.048238690 +0200
+@@ -203,7 +203,7 @@
+     unsigned int    offset,byte_count,rem_count;
+     Mode9_comtype       command;
+     char* dest=    (char*) compressBuf;
+-    register char *dptr=dest;
++    char *dptr=dest;
+ 
+     while ( size > 0 )
+     {
+--- a/prnt/hpcups/ModeDeltaPlus.cpp	2023-06-14 19:09:28.490442091 +0200
++++ b/prnt/hpcups/ModeDeltaPlus.cpp	2023-06-14 19:09:50.635565841 +0200
+@@ -241,8 +241,8 @@
+                               const     uint32_t    inheight,
+                               uint32_t  horz_ht_dist)
+ {
+-    register    BYTE     *outptr = outmem;
+-    register    uint32_t    col;
++    BYTE     *outptr = outmem;
++    uint32_t    col;
+     const       BYTE     *seedrow;
+     uint32_t                seedrow_count = 0;
+     uint32_t                location = 0;
+--- a/prnt/hpijs/compression.cpp	2023-06-14 19:10:32.381810140 +0200
++++ b/prnt/hpijs/compression.cpp	2023-06-14 19:10:42.519869992 +0200
+@@ -266,7 +266,7 @@
+     unsigned int    offset,byte_count,rem_count;
+     Mode9_comtype       command;
+     char* dest=    (char*) compressBuf;
+-    register char *dptr=dest;
++    char *dptr=dest;
+ 
+     while ( size > 0 )
+     {
+--- a/prnt/hpijs/ljfastraster.cpp	2023-06-14 19:11:20.764083095 +0200
++++ b/prnt/hpijs/ljfastraster.cpp	2023-06-14 19:11:38.149173736 +0200
+@@ -919,8 +919,8 @@
+                               const     uint32_t    inheight,
+                               uint32_t  horz_ht_dist)
+ {
+-	register    HPUInt8     *outptr = outmem;
+-	register    uint32_t    col;
++	HPUInt8     *outptr = outmem;
++	uint32_t    col;
+     const       HPUInt8     *seedrow;
+     uint32_t                seedrow_count = 0;
+     uint32_t                location = 0;
+@@ -1067,9 +1067,9 @@
+                                &&
+                                (
+                                  /* seedrow and run */
+-                                 (
++                                 (
+                                    ((col + 2) >= horz_ht_dist) &&
+-                                   (cur_row[col+2-horz_ht_dist] == cur_row[col+2])
++                                   (cur_row[col+2-horz_ht_dist] == cur_row[col+2])
+                                  )
+                                  ||
+                                  /* seedrow and northeast predict */
