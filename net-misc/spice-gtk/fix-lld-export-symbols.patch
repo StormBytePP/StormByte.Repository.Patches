@@ -1,0 +1,36 @@
+--- a/src/meson.build	2023-06-14 19:59:42.849920259 +0200
++++ b/src/meson.build	2023-06-14 20:00:15.689137552 +0200
+@@ -185,11 +185,11 @@
+ spice_client_glib_syms_path = meson.current_source_dir() / 'map-file'
+ spice_gtk_version_script = '-Wl,--version-script=@0@'.format(spice_client_glib_syms_path)
+ spice_gtk_has_version_script = compiler.has_link_argument(spice_gtk_version_script)
+-if not spice_gtk_has_version_script
+-  spice_client_glib_syms = files('spice-glib-sym-file')
+-  spice_client_glib_syms_path = meson.current_source_dir() / 'spice-glib-sym-file'
+-  spice_gtk_version_script = ['-export-symbols', spice_client_glib_syms_path]
+-endif
++#if not spice_gtk_has_version_script
++#  spice_client_glib_syms = files('spice-glib-sym-file')
++#  spice_client_glib_syms_path = meson.current_source_dir() / 'spice-glib-sym-file'
++#  spice_gtk_version_script = ['-export-symbols', spice_client_glib_syms_path]
++#endif
+ 
+ # soversion
+ # http://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html
+@@ -373,11 +373,11 @@
+   # libspice-client-gtk.so
+   #
+   spice_client_gtk_syms = spice_client_glib_syms
+-  if not spice_gtk_has_version_script
+-    spice_client_gtk_syms = files('spice-gtk-sym-file')
+-    spice_client_gtk_syms_path = meson.current_source_dir() / 'spice-gtk-sym-file'
+-    spice_gtk_version_script = ['-export-symbols', spice_client_gtk_syms_path]
+-  endif
++  #if not spice_gtk_has_version_script
++  #  spice_client_gtk_syms = files('spice-gtk-sym-file')
++  #  spice_client_gtk_syms_path = meson.current_source_dir() / 'spice-gtk-sym-file'
++  #  spice_gtk_version_script = ['-export-symbols', spice_client_gtk_syms_path]
++  #endif
+ 
+   # soversion
+   # http://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html
