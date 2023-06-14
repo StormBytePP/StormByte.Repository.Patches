@@ -1,0 +1,11 @@
+--- a/rman.c	2023-06-14 08:35:12.359997201 +0200
++++ b/rman.c	2023-06-14 08:35:38.093153654 +0200
+@@ -268,7 +268,7 @@
+ 	else return 1;
+ }
+ 
+-int lcexceptionscmp(const char **a, const char **b) { return stricmp(*a, *b); }
++int lcexceptionscmp(const void *a, const void *b) { return stricmp(*(const char**)a, *(const char**)b); }
+ 
+ int
+ strincmp(const char *s1, const char *s2, size_t n) {
