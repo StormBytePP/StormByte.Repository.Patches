@@ -1,0 +1,12 @@
+diff --git a/gtk/meson.build.orig b/gtk/meson.build
+index a8e1088..9db50c6 100644
+--- a/gtk/meson.build
++++ b/gtk/meson.build
+@@ -853,6 +853,7 @@ if not meson.is_cross_build() and build_machine.cpu_family() == 'x86_64' and bui
+                  '-z', 'noexecstack',
+                  '-r',
+                  '-b','binary',
++                 '-m','elf_x86_64',
+                  '@INPUT@',
+                  '-o','@OUTPUT@'])
+ 
