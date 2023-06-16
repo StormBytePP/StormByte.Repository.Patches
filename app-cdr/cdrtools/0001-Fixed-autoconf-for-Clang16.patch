@@ -1,15 +1,18 @@
-From 4f91c13617103b20b76f36556669d8157ce71d65 Mon Sep 17 00:00:00 2001
+From cd1ea95063179ef7b15117817e4203f495396029 Mon Sep 17 00:00:00 2001
 From: "David C. Manuelda" <StormByte@gmail.com>
-Date: Fri, 16 Jun 2023 12:40:02 +0200
-Subject: [PATCH 1/2] Fixed autoconf for CLang
+Date: Fri, 16 Jun 2023 15:57:46 +0200
+Subject: [PATCH 1/2] Fixed autoconf for Clang16
 
+This solves some tests failing due:
+* implicit int functions
+* missing includes (like stdlib.h for exit)
 ---
  autoconf/acgeneral.m4  |   7 +-
- autoconf/aclocal.m4    | 111 +++++++++++++++--
- autoconf/acspecific.m4 |  65 +++++++---
+ autoconf/aclocal.m4    | 111 +++++++++++-
+ autoconf/acspecific.m4 |  65 +++++--
  autoconf/config.guess  |   3 +-
- autoconf/configure     | 270 +++++++++++++++++++++++++++++++++++------
- 5 files changed, 391 insertions(+), 65 deletions(-)
+ autoconf/configure     | 400 ++++++++++++++++++++++++++++++++++++-----
+ 5 files changed, 515 insertions(+), 71 deletions(-)
 
 diff --git a/autoconf/acgeneral.m4 b/autoconf/acgeneral.m4
 index 03799da..4920d9e 100644
@@ -604,12 +607,12 @@ index 8123697..cfd92c3 100644
   AC_DEFINE(LONG_64_BITS)], AC_MSG_RESULT(no))
  ])
 diff --git a/autoconf/config.guess b/autoconf/config.guess
-index 69188da..6e93151 100755
+index 07b0d21..a9b2254 100755
 --- a/autoconf/config.guess
 +++ b/autoconf/config.guess
-@@ -627,8 +627,9 @@ EOF
- 		set_cc_for_build
- 		sed 's/^		//' << EOF > "$dummy.c"
+@@ -327,8 +327,9 @@ EOF
+ 	if grep bos325 /usr/include/stdio.h >/dev/null 2>&1; then
+ 		sed 's/^		//' << EOF >dummy.c
  		#include <sys/systemcfg.h>
 +		#include <stdlib.h>
  
@@ -619,7 +622,7 @@ index 69188da..6e93151 100755
  			if (!__power_pc())
  				exit(1);
 diff --git a/autoconf/configure b/autoconf/configure
-index c2a0955..411a18c 100755
+index c2a0955..790a34e 100755
 --- a/autoconf/configure
 +++ b/autoconf/configure
 @@ -1216,7 +1216,7 @@ cat > conftest.$ac_ext << EOF
@@ -631,7 +634,15 @@ index c2a0955..411a18c 100755
  EOF
  if { eval echo configure:1222: \"$ac_link\" 1>&5; eval $ac_link 2>&5; } && test -s conftest${ac_exeext}; then
    ac_cv_prog_cc_works=yes
-@@ -4997,6 +4997,9 @@ else
+@@ -2033,6 +2033,7 @@ else
+ #line 2034 "configure"
+ #include "confdefs.h"
+ #include <ctype.h>
++#include <stdlib.h>
+ #define ISLOWER(c) ('a' <= (c) && (c) <= 'z')
+ #define TOUPPER(c) (ISLOWER(c) ? 'A' + ((c) - 'a') : (c))
+ #define XOR(e, f) (((e) && !(f)) || (!(e) && (f)))
+@@ -4997,6 +4998,9 @@ else
  #line 4998 "configure"
  #include "confdefs.h"
  #include <stdio.h>
@@ -641,7 +652,7 @@ index c2a0955..411a18c 100755
  #include <sys/types.h>
  #ifdef major
  #	define _FOUND_MAJOR_
-@@ -5082,6 +5085,9 @@ else
+@@ -5082,6 +5086,9 @@ else
  #line 5083 "configure"
  #include "confdefs.h"
  
@@ -651,7 +662,18 @@ index c2a0955..411a18c 100755
  #include <sys/types.h>
  #ifdef major
  #	define _FOUND_MAJOR_
-@@ -5835,6 +5841,9 @@ else
+@@ -5378,6 +5385,10 @@ else
+ #line 5379 "configure"
+ #include "confdefs.h"
+ #include <signal.h>
++#ifdef	HAVE_STDLIB_H
++#include <stdlib.h>
++#endif
++
+ int main() {
+ char *cp = (char *)sys_siglist[0]; exit (cp != (char *)0 && *cp != 0);
+ ; return 0; }
+@@ -5835,6 +5846,9 @@ else
  #line 5836 "configure"
  #include "confdefs.h"
  
@@ -661,13 +683,26 @@ index c2a0955..411a18c 100755
  struct {
  	unsigned char	x1:4;
  	unsigned char	x2:4;
-@@ -6044,12 +6053,15 @@ else
+@@ -5918,7 +5932,7 @@ for ac_kw in inline __inline__ __inline; do
+ #include "confdefs.h"
+ 
+ int main() {
+-} $ac_kw foo() {
++} int $ac_kw foo() {
+ ; return 0; }
+ EOF
+ if { eval echo configure:5925: \"$ac_compile\" 1>&5; eval $ac_compile 2>&5; }; then
+@@ -6044,12 +6058,19 @@ else
  #line 6045 "configure"
  #include "confdefs.h"
  
 +#ifdef HAVE_STDLIB_H
 +#include <stdlib.h>
 +#endif
++#ifdef	HAVE_UNISTD_H
++#include <unistd.h>
++#endif
++
  /* Thanks to Mike Rendell for this test.  */
  #include <sys/types.h>
  #define NGID 256
@@ -678,7 +713,50 @@ index c2a0955..411a18c 100755
  {
    gid_t gidset[NGID];
    int i, n;
-@@ -8125,13 +8137,16 @@ else
+@@ -6210,8 +6231,11 @@ else
+   cat > conftest.$ac_ext <<EOF
+ #line 6212 "configure"
+ #include "confdefs.h"
++#ifdef HAVE_STDLIB_H
++#include <stdlib.h>
++#endif
+ 
+-doit(int i, ...)
++int doit(int i, ...)
+ {return 0;}
+ int
+ main(int ac, char *av[])
+@@ -7151,6 +7175,9 @@ else
+ #else
+ #include <sys/wait.h>
+ #endif
++#ifdef HAVE_STDLIB_H
++#include <stdlib.h>
++#endif
+ int main() {
+ idtype_t idt; idt = P_ALL; idt = P_PGID; idt = P_PID; exit (idt == P_PID);
+ ; return 0; }
+@@ -7220,6 +7247,9 @@ else
+ #line 7221 "configure"
+ #include "confdefs.h"
+ #include <signal.h>
++#ifdef HAVE_STDLIB_H
++#include <stdlib.h>
++#endif
+ int main() {
+ stack_t ss; ss.ss_size = 0; exit (ss.ss_size == 0);
+ ; return 0; }
+@@ -7259,6 +7289,9 @@ else
+ #include <sys/siginfo.h>
+ #endif
+ #endif
++#ifdef HAVE_STDLIB_H
++#include <stdlib.h>
++#endif
+ int main() {
+ siginfo_t si; si.si_signo = 0; exit (si.si_signo == 0);
+ ; return 0; }
+@@ -8125,13 +8158,16 @@ else
  #line 8126 "configure"
  #include "confdefs.h"
  #include <stdio.h>
@@ -696,7 +774,7 @@ index c2a0955..411a18c 100755
  {
    FILE *f=fopen("conftestval", "w");
    if (!f) exit(1);
-@@ -8170,13 +8185,16 @@ else
+@@ -8170,13 +8206,16 @@ else
  #line 8171 "configure"
  #include "confdefs.h"
  #include <stdio.h>
@@ -714,7 +792,7 @@ index c2a0955..411a18c 100755
  {
    FILE *f=fopen("conftestval", "w");
    if (!f) exit(1);
-@@ -8215,13 +8233,16 @@ else
+@@ -8215,13 +8254,16 @@ else
  #line 8216 "configure"
  #include "confdefs.h"
  #include <stdio.h>
@@ -732,7 +810,7 @@ index c2a0955..411a18c 100755
  {
    FILE *f=fopen("conftestval", "w");
    if (!f) exit(1);
-@@ -8260,13 +8281,16 @@ else
+@@ -8260,13 +8302,16 @@ else
  #line 8261 "configure"
  #include "confdefs.h"
  #include <stdio.h>
@@ -750,7 +828,7 @@ index c2a0955..411a18c 100755
  {
    FILE *f=fopen("conftestval", "w");
    if (!f) exit(1);
-@@ -8305,13 +8329,16 @@ else
+@@ -8305,13 +8350,16 @@ else
  #line 8306 "configure"
  #include "confdefs.h"
  #include <stdio.h>
@@ -768,7 +846,7 @@ index c2a0955..411a18c 100755
  {
    FILE *f=fopen("conftestval", "w");
    if (!f) exit(1);
-@@ -8350,13 +8377,16 @@ else
+@@ -8350,13 +8398,16 @@ else
  #line 8351 "configure"
  #include "confdefs.h"
  #include <stdio.h>
@@ -786,7 +864,7 @@ index c2a0955..411a18c 100755
  {
    FILE *f=fopen("conftestval", "w");
    if (!f) exit(1);
-@@ -8395,13 +8425,16 @@ else
+@@ -8395,13 +8446,16 @@ else
  #line 8396 "configure"
  #include "confdefs.h"
  #include <stdio.h>
@@ -804,7 +882,7 @@ index c2a0955..411a18c 100755
  {
    FILE *f=fopen("conftestval", "w");
    if (!f) exit(1);
-@@ -8441,13 +8474,16 @@ else
+@@ -8441,13 +8495,16 @@ else
  #line 8442 "configure"
  #include "confdefs.h"
  #include <stdio.h>
@@ -822,7 +900,7 @@ index c2a0955..411a18c 100755
  {
    FILE *f=fopen("conftestval", "w");
    if (!f) exit(1);
-@@ -8486,13 +8522,16 @@ else
+@@ -8486,13 +8543,16 @@ else
  #line 8487 "configure"
  #include "confdefs.h"
  #include <stdio.h>
@@ -840,7 +918,7 @@ index c2a0955..411a18c 100755
  {
    FILE *f=fopen("conftestval", "w");
    if (!f) exit(1);
-@@ -8531,13 +8570,16 @@ else
+@@ -8531,13 +8591,16 @@ else
  #line 8532 "configure"
  #include "confdefs.h"
  #include <stdio.h>
@@ -858,7 +936,7 @@ index c2a0955..411a18c 100755
  {
    FILE *f=fopen("conftestval", "w");
    if (!f) exit(1);
-@@ -8576,13 +8618,16 @@ else
+@@ -8576,13 +8639,16 @@ else
  #line 8577 "configure"
  #include "confdefs.h"
  #include <stdio.h>
@@ -876,7 +954,7 @@ index c2a0955..411a18c 100755
  {
    FILE *f=fopen("conftestval", "w");
    if (!f) exit(1);
-@@ -8621,13 +8666,16 @@ else
+@@ -8621,13 +8687,16 @@ else
  #line 8622 "configure"
  #include "confdefs.h"
  #include <stdio.h>
@@ -894,7 +972,7 @@ index c2a0955..411a18c 100755
  {
    FILE *f=fopen("conftestval", "w");
    if (!f) exit(1);
-@@ -8666,13 +8714,16 @@ else
+@@ -8666,13 +8735,16 @@ else
  #line 8667 "configure"
  #include "confdefs.h"
  #include <stdio.h>
@@ -912,7 +990,7 @@ index c2a0955..411a18c 100755
  {
    FILE *f=fopen("conftestval", "w");
    if (!f) exit(1);
-@@ -8711,13 +8762,16 @@ else
+@@ -8711,13 +8783,16 @@ else
  #line 8712 "configure"
  #include "confdefs.h"
  #include <stdio.h>
@@ -930,7 +1008,7 @@ index c2a0955..411a18c 100755
  {
    FILE *f=fopen("conftestval", "w");
    if (!f) exit(1);
-@@ -8756,13 +8810,16 @@ else
+@@ -8756,13 +8831,16 @@ else
  #line 8757 "configure"
  #include "confdefs.h"
  #include <stdio.h>
@@ -948,7 +1026,7 @@ index c2a0955..411a18c 100755
  {
    FILE *f=fopen("conftestval", "w");
    if (!f) exit(1);
-@@ -8801,13 +8858,16 @@ else
+@@ -8801,13 +8879,16 @@ else
  #line 8802 "configure"
  #include "confdefs.h"
  #include <stdio.h>
@@ -966,7 +1044,7 @@ index c2a0955..411a18c 100755
  {
    FILE *f=fopen("conftestval", "w");
    if (!f) exit(1);
-@@ -8846,13 +8906,16 @@ else
+@@ -8846,13 +8927,16 @@ else
  #line 8847 "configure"
  #include "confdefs.h"
  #include <stdio.h>
@@ -984,7 +1062,7 @@ index c2a0955..411a18c 100755
  {
    FILE *f=fopen("conftestval", "w");
    if (!f) exit(1);
-@@ -8892,13 +8955,16 @@ else
+@@ -8892,13 +8976,16 @@ else
  #line 8893 "configure"
  #include "confdefs.h"
  #include <stdio.h>
@@ -1002,7 +1080,7 @@ index c2a0955..411a18c 100755
  {
    FILE *f=fopen("conftestval", "w");
    if (!f) exit(1);
-@@ -8937,13 +9003,16 @@ else
+@@ -8937,13 +9024,16 @@ else
  #line 8938 "configure"
  #include "confdefs.h"
  #include <stdio.h>
@@ -1020,7 +1098,7 @@ index c2a0955..411a18c 100755
  {
    FILE *f=fopen("conftestval", "w");
    if (!f) exit(1);
-@@ -8982,13 +9051,16 @@ else
+@@ -8982,13 +9072,16 @@ else
  #line 8983 "configure"
  #include "confdefs.h"
  #include <stdio.h>
@@ -1038,7 +1116,7 @@ index c2a0955..411a18c 100755
  {
    FILE *f=fopen("conftestval", "w");
    if (!f) exit(1);
-@@ -9028,13 +9100,16 @@ else
+@@ -9028,13 +9121,16 @@ else
  #line 9029 "configure"
  #include "confdefs.h"
  #include <stdio.h>
@@ -1056,7 +1134,7 @@ index c2a0955..411a18c 100755
  {
    FILE *f=fopen("conftestval", "w");
    if (!f) exit(1);
-@@ -9073,13 +9148,16 @@ else
+@@ -9073,13 +9169,16 @@ else
  #line 9074 "configure"
  #include "confdefs.h"
  #include <stdio.h>
@@ -1074,7 +1152,7 @@ index c2a0955..411a18c 100755
  {
    FILE *f=fopen("conftestval", "w");
    if (!f) exit(1);
-@@ -9118,13 +9196,16 @@ else
+@@ -9118,13 +9217,16 @@ else
  #line 9119 "configure"
  #include "confdefs.h"
  #include <stdio.h>
@@ -1092,7 +1170,7 @@ index c2a0955..411a18c 100755
  {
    FILE *f=fopen("conftestval", "w");
    if (!f) exit(1);
-@@ -9163,13 +9244,16 @@ else
+@@ -9163,13 +9265,16 @@ else
  #line 9164 "configure"
  #include "confdefs.h"
  #include <stdio.h>
@@ -1110,7 +1188,7 @@ index c2a0955..411a18c 100755
  {
    FILE *f=fopen("conftestval", "w");
    if (!f) exit(1);
-@@ -9209,13 +9293,16 @@ else
+@@ -9209,13 +9314,16 @@ else
  #line 9210 "configure"
  #include "confdefs.h"
  #include <stdio.h>
@@ -1128,7 +1206,7 @@ index c2a0955..411a18c 100755
  {
    FILE *f=fopen("conftestval", "w");
    if (!f) exit(1);
-@@ -9254,13 +9341,16 @@ else
+@@ -9254,13 +9362,16 @@ else
  #line 9255 "configure"
  #include "confdefs.h"
  #include <stdio.h>
@@ -1146,7 +1224,7 @@ index c2a0955..411a18c 100755
  {
    FILE *f=fopen("conftestval", "w");
    if (!f) exit(1);
-@@ -9299,13 +9389,16 @@ else
+@@ -9299,13 +9410,16 @@ else
  #line 9300 "configure"
  #include "confdefs.h"
  #include <stdio.h>
@@ -1164,7 +1242,7 @@ index c2a0955..411a18c 100755
  {
    FILE *f=fopen("conftestval", "w");
    if (!f) exit(1);
-@@ -9345,6 +9438,9 @@ else
+@@ -9345,6 +9459,9 @@ else
  #line 9346 "configure"
  #include "confdefs.h"
  #include <stdio.h>
@@ -1174,7 +1252,7 @@ index c2a0955..411a18c 100755
  #include <sys/types.h>
  #ifdef	TIME_WITH_SYS_TIME_H
  #	include <sys/time.h>
-@@ -9356,7 +9452,7 @@ else
+@@ -9356,7 +9473,7 @@ else
  #	include <time.h>
  #endif
  #endif
@@ -1183,7 +1261,7 @@ index c2a0955..411a18c 100755
  {
    FILE *f=fopen("conftestval", "w");
    if (!f) exit(1);
-@@ -9395,7 +9491,10 @@ else
+@@ -9395,7 +9512,10 @@ else
  #line 9396 "configure"
  #include "confdefs.h"
  #include <stdio.h>
@@ -1195,7 +1273,7 @@ index c2a0955..411a18c 100755
  {
    FILE *f=fopen("conftestval", "w");
    if (!f) exit(1);
-@@ -9443,7 +9542,7 @@ else
+@@ -9443,7 +9563,7 @@ else
  #ifdef	HAVE_WCHAR_H
  #include <wchar.h>
  #endif
@@ -1204,7 +1282,7 @@ index c2a0955..411a18c 100755
  {
    FILE *f=fopen("conftestval", "w");
    if (!f) exit(1);
-@@ -9483,6 +9582,9 @@ else
+@@ -9483,6 +9603,9 @@ else
  #line 9484 "configure"
  #include "confdefs.h"
  
@@ -1214,20 +1292,62 @@ index c2a0955..411a18c 100755
  int
  main()
  {
-@@ -11223,8 +11325,11 @@ else
+@@ -10225,6 +10348,9 @@ else
+ #line 10226 "configure"
+ #include "confdefs.h"
+ #include <sys/socket.h>
++#ifdef HAVE_STDLIB_H
++#include <stdlib.h>
++#endif
+ int main() {
+ struct  sockaddr_storage ss; ss.ss_family = 0; exit (ss.ss_family == 0);
+ ; return 0; }
+@@ -10930,6 +11056,9 @@ else
+ #line 10931 "configure"
+ #include "confdefs.h"
+ #include <dirent.h>
++#ifdef HAVE_STDLIB_H
++#include <stdlib.h>
++#endif
+ int main() {
+ DIR d; d.dd_fd = 0; exit (d.dd_fd == 0);
+ ; return 0; }
+@@ -11148,6 +11277,9 @@ else
+ 
+ #include <sys/types.h>
+ #include <sys/stat.h>
++#ifdef HAVE_STDLIB_H
++#include <stdlib.h>
++#endif
+ int main() {
+  char *p = (char *) stat; exit (p != (char *)0 && *p != 0); 
+ ; return 0; }
+@@ -11183,6 +11315,9 @@ else
+ 
+ #include <sys/types.h>
+ #include <sys/stat.h>
++#ifdef HAVE_STDLIB_H
++#include <stdlib.h>
++#endif
+ int main() {
+  char *p = (char *) lstat; exit (p != (char *)0 && *p != 0); 
+ ; return 0; }
+@@ -11223,8 +11358,13 @@ else
  #include <sys/time.h>
  #include <sys/resource.h>
  #include <stdio.h>
 +#ifdef HAVE_STDLIB_H
 +#include <stdlib.h>
 +#endif
++#include <sys/wait.h>
++#include <unistd.h>
  /* HP-UX has wait3 but does not fill in rusage at all.  */
 -main() {
 +int main() {
    struct rusage r;
    int i;
    /* Use a field that we can force nonzero --
-@@ -11288,11 +11393,14 @@ else
+@@ -11288,11 +11428,15 @@ else
  
  #include <sys/types.h>
  #include <errno.h>
@@ -1237,13 +1357,14 @@ index c2a0955..411a18c 100755
  #ifndef	HAVE_ERRNO_DEF
  extern	int	errno;
  #endif
++#include <sys/mman.h>
  
 -main()
 +int main()
  {
  	if (mlock(0, 0) < 0) {
  		if (errno == EINVAL || errno ==  ENOMEM ||
-@@ -11340,6 +11448,9 @@ else
+@@ -11340,6 +11484,9 @@ else
  #include <sys/types.h>
  #include <sys/mman.h>
  #include <errno.h>
@@ -1253,37 +1374,53 @@ index c2a0955..411a18c 100755
  #ifndef	HAVE_ERRNO_DEF
  extern	int	errno;
  #endif
-@@ -11471,6 +11582,9 @@ else
+@@ -11471,9 +11618,14 @@ else
  #line 11472 "configure"
  #include "confdefs.h"
  
 +#ifdef HAVE_STDLIB_H
 +#include <stdlib.h>
 +#endif
++#include <string.h>
++
  extern	char *ecvt();
  
- sprintf(s)
-@@ -11521,6 +11635,9 @@ else
+-sprintf(s)
++int sprintf(s)
+ 	char	*s;
+ {
+ 	strcpy(s, "DEAD");
+@@ -11521,9 +11673,13 @@ else
  #line 11522 "configure"
  #include "confdefs.h"
  
 +#ifdef HAVE_STDLIB_H
 +#include <stdlib.h>
 +#endif
++#include <string.h>
  extern	char *fcvt();
  
- sprintf(s)
-@@ -11571,6 +11688,9 @@ else
+-sprintf(s)
++int sprintf(s)
+ 	char	*s;
+ {
+ 	strcpy(s, "DEAD");
+@@ -11571,9 +11727,13 @@ else
  #line 11572 "configure"
  #include "confdefs.h"
  
 +#ifdef HAVE_STDLIB_H
 +#include <stdlib.h>
 +#endif
++#include <string.h>
  extern	char *gcvt();
  
- sprintf(s)
-@@ -11654,6 +11774,9 @@ else
+-sprintf(s)
++int sprintf(s)
+ 	char	*s;
+ {
+ 	strcpy(s, "DEAD");
+@@ -11654,6 +11814,9 @@ else
  #line 11655 "configure"
  #include "confdefs.h"
  
@@ -1293,7 +1430,17 @@ index c2a0955..411a18c 100755
  extern	char *__dtoa();
  int
  main()
-@@ -11786,6 +11909,9 @@ else
+@@ -11705,6 +11868,9 @@ else
+ #ifdef	HAVE_UNISTD_H
+ #include <unistd.h>
+ #endif
++#ifdef HAVE_STDLIB_H
++#include <stdlib.h>
++#endif
+ 
+ int main() {
+ 
+@@ -11786,6 +11952,9 @@ else
  #line 11787 "configure"
  #include "confdefs.h"
  
@@ -1303,7 +1450,7 @@ index c2a0955..411a18c 100755
  #include <sys/types.h>
  #include <fcntl.h>
  #include <signal.h>
-@@ -12021,6 +12147,9 @@ else
+@@ -12021,6 +12190,9 @@ else
  #include <sys/types.h>
  #include <fcntl.h>
  #include <sys/mman.h>
@@ -1313,7 +1460,7 @@ index c2a0955..411a18c 100755
  
  /*
   * Needed for Apollo Domain/OS and may be for others?
-@@ -12221,6 +12350,9 @@ else
+@@ -12221,6 +12393,9 @@ else
  #include <signal.h>
  #include <setjmp.h>
  #include <sys/mman.h>
@@ -1323,7 +1470,7 @@ index c2a0955..411a18c 100755
  
  #ifndef MAP_FILE
  #define MAP_FILE   0		/* Needed on Apollo Domain/OS */
-@@ -12390,6 +12522,9 @@ else
+@@ -12390,6 +12565,9 @@ else
  
  #include <sys/types.h>
  #include <sys/mman.h>
@@ -1333,7 +1480,7 @@ index c2a0955..411a18c 100755
  
  #ifndef	MAP_ANONYMOUS
  #	ifdef	MAP_ANON
-@@ -12490,6 +12625,9 @@ else
+@@ -12490,6 +12668,9 @@ else
  #line 12491 "configure"
  #include "confdefs.h"
  
@@ -1343,7 +1490,7 @@ index c2a0955..411a18c 100755
  #include <sys/types.h>
  #include <sys/ipc.h>
  #include <sys/shm.h>
-@@ -13188,6 +13326,9 @@ else
+@@ -13188,6 +13369,9 @@ else
  #line 13189 "configure"
  #include "confdefs.h"
  
@@ -1353,7 +1500,7 @@ index c2a0955..411a18c 100755
  int
  main()
  { extern char *sys_siglist[];
-@@ -13228,6 +13369,9 @@ else
+@@ -13228,6 +13412,9 @@ else
  #line 13229 "configure"
  #include "confdefs.h"
  
@@ -1363,7 +1510,7 @@ index c2a0955..411a18c 100755
  int
  main()
  { long p;
-@@ -13272,6 +13416,9 @@ else
+@@ -13272,6 +13459,9 @@ else
  #line 13273 "configure"
  #include "confdefs.h"
  
@@ -1373,7 +1520,7 @@ index c2a0955..411a18c 100755
  #include <errno.h>
  #ifndef	HAVE_ERRNO_DEF
  extern	int	errno;
-@@ -13464,6 +13611,9 @@ else
+@@ -13464,7 +13654,12 @@ else
  #line 13465 "configure"
  #include "confdefs.h"
  
@@ -1381,9 +1528,12 @@ index c2a0955..411a18c 100755
 +#include <stdlib.h>
 +#endif
  #include <inttypes.h>
++#include <stdio.h>
++#include <string.h>
  int
  main()
-@@ -13507,6 +13657,9 @@ else
+ { intmax_t m = 123456789012LL;
+@@ -13507,7 +13702,12 @@ else
  #line 13508 "configure"
  #include "confdefs.h"
  
@@ -1391,30 +1541,170 @@ index c2a0955..411a18c 100755
 +#include <stdlib.h>
 +#endif
  #include <sys/types.h>
++#include <stdio.h>
++#include <string.h>
  int
  main()
-@@ -13550,6 +13703,9 @@ else
+ { size_t m = 1234567890;
+@@ -13550,6 +13750,11 @@ else
  #line 13551 "configure"
  #include "confdefs.h"
  
 +#ifdef HAVE_STDLIB_H
 +#include <stdlib.h>
 +#endif
++#include <stdio.h>
++#include <string.h>
  int
  main()
  { long long ll = 123456789012LL;
-@@ -19380,6 +19536,9 @@ else
+@@ -17544,6 +17749,9 @@ else
+ #ifdef	HAVE_TERMIOS_H
+ #include <termios.h>
+ #endif
++#ifdef HAVE_STDLIB_H
++#include <stdlib.h>
++#endif
+ 
+ int main() {
+ 
+@@ -17586,6 +17794,9 @@ else
+ #ifdef	HAVE_TERMIOS_H
+ #include <termios.h>
+ #endif
++#ifdef HAVE_STDLIB_H
++#include <stdlib.h>
++#endif
+ 
+ int main() {
+ 
+@@ -17851,6 +18062,9 @@ else
+ #ifdef	HAVE_STRING_H
+ #include <string.h>
+ #endif
++#ifdef HAVE_STDLIB_H
++#include <stdlib.h>
++#endif
+ 
+ int main() {
+ 
+@@ -17896,6 +18110,9 @@ else
+ #ifdef	HAVE_WCHAR_H
+ #include <wchar.h>
+ #endif
++#ifdef HAVE_STDLIB_H
++#include <stdlib.h>
++#endif
+ 
+ int main() {
+ 
+@@ -18902,6 +19119,9 @@ else
+ #line 18903 "configure"
+ #include "confdefs.h"
+ #include <dirent.h>
++#ifdef HAVE_STDLIB_H
++#include <stdlib.h>
++#endif
+ int main() {
+ 
+ #ifndef dirfd
+@@ -18947,6 +19167,9 @@ else
+ #ifdef	HAVE_WCTYPE_H
+ #include <wctype.h>
+ #endif
++#ifdef HAVE_STDLIB_H
++#include <stdlib.h>
++#endif
+ 
+ int main() {
+ 
+@@ -18993,6 +19216,9 @@ else
+ #ifdef	HAVE_WCTYPE_H
+ #include <wctype.h>
+ #endif
++#ifdef HAVE_STDLIB_H
++#include <stdlib.h>
++#endif
+ 
+ int main() {
+ 
+@@ -19036,6 +19262,9 @@ else
+ #ifdef	HAVE_CTYPE_H
+ #include <ctype.h>
+ #endif
++#ifdef HAVE_STDLIB_H
++#include <stdlib.h>
++#endif
+ 
+ int main() {
+ 
+@@ -19082,6 +19311,9 @@ else
+ #ifdef	HAVE_WCTYPE_H
+ #include <wctype.h>
+ #endif
++#ifdef HAVE_STDLIB_H
++#include <stdlib.h>
++#endif
+ 
+ int main() {
+ 
+@@ -19214,6 +19446,9 @@ else
+ #ifdef	HAVE_WCTYPE_H
+ #include <wctype.h>
+ #endif
++#ifdef HAVE_STDLIB_H
++#include <stdlib.h>
++#endif
+ 
+ int main() {
+ 
+@@ -19260,6 +19495,9 @@ else
+ #ifdef	HAVE_WCTYPE_H
+ #include <wctype.h>
+ #endif
++#ifdef HAVE_STDLIB_H
++#include <stdlib.h>
++#endif
+ 
+ int main() {
+ 
+@@ -19300,6 +19538,9 @@ else
+ #line 19301 "configure"
+ #include "confdefs.h"
+ #include <ieeefp.h>
++#ifdef HAVE_STDLIB_H
++#include <stdlib.h>
++#endif
+ int main() {
+ 
+ #ifndef finite
+@@ -19338,6 +19579,9 @@ else
+ #line 19339 "configure"
+ #include "confdefs.h"
+ #include <ieeefp.h>
++#ifdef HAVE_STDLIB_H
++#include <stdlib.h>
++#endif
+ int main() {
+ 
+ #ifndef isnand
+@@ -19380,6 +19624,10 @@ else
  #line 19381 "configure"
  #include "confdefs.h"
  
 +#ifdef HAVE_STDLIB_H
 +#include <stdlib.h>
 +#endif
++#include <unistd.h>
  #if !defined(__CYGWIN32__) && !defined(__CYGWIN__)
  static int mcalled;
  char *
-@@ -19401,7 +19560,7 @@ malloc(s)
- free(p) char *p;{}
+@@ -19398,10 +19646,10 @@ malloc(s)
+ 	return (sbrk(s));
+ }
+ 
+-free(p) char *p;{}
++int free(p) char *p;{}
  #endif	/* !defined(__CYGWIN32__) && !defined(__CYGWIN__) */
  	
 -main()
@@ -1422,7 +1712,7 @@ index c2a0955..411a18c 100755
  {
  #if !defined(__CYGWIN32__) && !defined(__CYGWIN__)
  #ifdef	HAVE_STRDUP
-@@ -19445,6 +19604,9 @@ else
+@@ -19445,6 +19693,9 @@ else
  #line 19446 "configure"
  #include "confdefs.h"
  
@@ -1432,7 +1722,7 @@ index c2a0955..411a18c 100755
  extern	long	timezone;
  
  int
-@@ -19529,6 +19691,9 @@ else
+@@ -19529,6 +19780,9 @@ else
  #line 19530 "configure"
  #include "confdefs.h"
  
@@ -1442,7 +1732,7 @@ index c2a0955..411a18c 100755
  extern	char	*__progname;
  
  int
-@@ -19570,6 +19735,9 @@ else
+@@ -19570,6 +19824,9 @@ else
  #line 19571 "configure"
  #include "confdefs.h"
  
@@ -1452,7 +1742,7 @@ index c2a0955..411a18c 100755
  extern	char	*__progname_full;
  
  int
-@@ -19612,7 +19780,10 @@ else
+@@ -19612,7 +19869,13 @@ else
  #line 19613 "configure"
  #include "confdefs.h"
  
@@ -1460,11 +1750,14 @@ index c2a0955..411a18c 100755
 +#ifdef HAVE_STDLIB_H
 +#include <stdlib.h>
 +#endif
++#include <unistd.h>
++#include <sys/stat.h>
++#include <fcntl.h>
 +int main()
  {
  	int	ret = 0;
  
-@@ -19664,10 +19835,13 @@ else
+@@ -19664,10 +19927,15 @@ else
  #line 19665 "configure"
  #include "confdefs.h"
  
@@ -1473,13 +1766,15 @@ index c2a0955..411a18c 100755
 +#endif
  #include <sys/types.h>
  #include <sys/stat.h>
++#include <fcntl.h>
++#include <unistd.h>
  
 -main()
 +int main()
  {
  	int	ret = 0;
  	int	f;
-@@ -19768,6 +19942,9 @@ else
+@@ -19768,6 +20036,9 @@ else
  #line 19769 "configure"
  #include "confdefs.h"
  
@@ -1489,7 +1784,7 @@ index c2a0955..411a18c 100755
  # ifdef HAVE_UNISTD_H
  #  include <unistd.h>
  # endif
-@@ -19795,7 +19972,7 @@ else
+@@ -19795,7 +20066,7 @@ else
  extern	int	errno;
  #endif
  
@@ -1498,7 +1793,7 @@ index c2a0955..411a18c 100755
  {
  #ifdef	_MSC_VER
  /*
-@@ -19891,6 +20068,9 @@ else
+@@ -19891,6 +20162,9 @@ else
  #line 19892 "configure"
  #include "confdefs.h"
  
@@ -1508,7 +1803,7 @@ index c2a0955..411a18c 100755
  #ifdef	HAVE_FNMATCH
  #include <fnmatch.h>
  #endif
-@@ -19901,7 +20081,7 @@ else
+@@ -19901,7 +20175,7 @@ else
  #endif
  #endif
  
@@ -1517,7 +1812,87 @@ index c2a0955..411a18c 100755
  {
  	int	ret;
  
-@@ -23990,6 +24170,9 @@ else
+@@ -20214,6 +20488,9 @@ else
+ #undef	u_long
+ #include <windows.h>
+ #endif
++#ifdef HAVE_STDLIB_H
++#include <stdlib.h>
++#endif
+ 
+ int main() {
+ 
+@@ -21338,6 +21615,9 @@ else
+ #line 21339 "configure"
+ #include "confdefs.h"
+ #include <libintl.h>
++#ifdef HAVE_STDLIB_H
++#include <stdlib.h>
++#endif
+ int main() {
+ 
+ #ifndef gettext
+@@ -21467,6 +21747,9 @@ else
+ #line 21468 "configure"
+ #include "confdefs.h"
+ #include <iconv.h>
++#ifdef HAVE_STDLIB_H
++#include <stdlib.h>
++#endif
+ int main() {
+ 
+ #ifndef iconv
+@@ -21505,6 +21788,9 @@ else
+ #line 21506 "configure"
+ #include "confdefs.h"
+ #include <iconv.h>
++#ifdef HAVE_STDLIB_H
++#include <stdlib.h>
++#endif
+ int main() {
+ 
+ #ifndef iconv_open
+@@ -21543,6 +21829,9 @@ else
+ #line 21544 "configure"
+ #include "confdefs.h"
+ #include <iconv.h>
++#ifdef HAVE_STDLIB_H
++#include <stdlib.h>
++#endif
+ int main() {
+ 
+ #ifndef iconv_close
+@@ -21581,6 +21870,9 @@ else
+ #line 21582 "configure"
+ #include "confdefs.h"
+ #include <iconv.h>
++#ifdef HAVE_STDLIB_H
++#include <stdlib.h>
++#endif
+ int main() {
+ 
+ #ifndef libiconv
+@@ -21619,6 +21911,9 @@ else
+ #line 21620 "configure"
+ #include "confdefs.h"
+ #include <iconv.h>
++#ifdef HAVE_STDLIB_H
++#include <stdlib.h>
++#endif
+ int main() {
+ 
+ #ifndef libiconv_open
+@@ -21657,6 +21952,9 @@ else
+ #line 21658 "configure"
+ #include "confdefs.h"
+ #include <iconv.h>
++#ifdef HAVE_STDLIB_H
++#include <stdlib.h>
++#endif
+ int main() {
+ 
+ #ifndef libiconv_close
+@@ -23990,6 +24288,9 @@ else
  #line 23991 "configure"
  #include "confdefs.h"
  
@@ -1527,7 +1902,7 @@ index c2a0955..411a18c 100755
  #include <sys/types.h>
  #include <sys/stat.h>
  
-@@ -24044,6 +24227,9 @@ else
+@@ -24044,6 +24345,9 @@ else
  #line 24045 "configure"
  #include "confdefs.h"
  
@@ -1537,7 +1912,7 @@ index c2a0955..411a18c 100755
  #include <sys/types.h>
  #include <sys/stat.h>
  
-@@ -24098,6 +24284,9 @@ else
+@@ -24098,6 +24402,9 @@ else
  #line 24099 "configure"
  #include "confdefs.h"
  
@@ -1547,7 +1922,7 @@ index c2a0955..411a18c 100755
  #include <sys/types.h>
  #include <sys/stat.h>
  
-@@ -24152,6 +24341,9 @@ else
+@@ -24152,6 +24459,9 @@ else
  #line 24153 "configure"
  #include "confdefs.h"
  

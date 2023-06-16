@@ -1,7 +1,7 @@
-From ab4a65b9ee5f73c0d178a71d30bec937db7acf15 Mon Sep 17 00:00:00 2001
+From d6e04fcc3b098c1d1dd4390b915219b5bffbcb75 Mon Sep 17 00:00:00 2001
 From: "David C. Manuelda" <StormByte@gmail.com>
-Date: Fri, 16 Jun 2023 12:54:10 +0200
-Subject: [PATCH 2/2] Fix missing include for mlockall
+Date: Fri, 16 Jun 2023 15:59:38 +0200
+Subject: [PATCH 2/2] Added a missing include
 
 ---
  cdrecord/cdrecord.c | 4 ++++
