@@ -1,0 +1,100 @@
+From 14aee98255845c89100c40e45430445ea738d5b4 Mon Sep 17 00:00:00 2001
+From: David Carlos Manuelda <StormByte@gmail.com>
+Date: Thu, 22 Jun 2023 01:58:01 +0200
+Subject: [PATCH] Fix musl+clang compile:
+
+* Replace __attribute_malloc__ with __attribute__((__malloc__))
+* The ALLPERMS define is not specified in POSIX so define them as expected
+---
+ support/include/junction.h   |  2 +-
+ support/junction/junction.c  |  3 +++
+ support/junction/locations.c |  2 +-
+ support/junction/nfs.c       |  3 +++
+ support/junction/path.c      | 10 +++++++++-
+ 5 files changed, 17 insertions(+), 3 deletions(-)
+
+diff --git a/support/include/junction.h b/support/include/junction.h
+index 7257d80..43105aa 100644
+--- a/support/include/junction.h
++++ b/support/include/junction.h
+@@ -125,7 +125,7 @@ void		  nfs_free_location(struct nfs_fsloc *location);
+ void		  nfs_free_locations(struct nfs_fsloc *locations);
+ struct nfs_fsloc *nfs_new_location(void);
+ 
+-__attribute_malloc__
++__attribute__((__malloc__))
+ char		**nfs_dup_string_array(char **array);
+ void		  nfs_free_string_array(char **array);
+ 
+diff --git a/support/junction/junction.c b/support/junction/junction.c
+index 0628bb0..4c43667 100644
+--- a/support/junction/junction.c
++++ b/support/junction/junction.c
+@@ -29,6 +29,9 @@
+ 
+ #include <sys/types.h>
+ #include <sys/stat.h>
++#ifndef ALLPERMS
++#define ALLPERMS (S_ISUID|S_ISGID|S_ISVTX|S_IRWXU|S_IRWXG|S_IRWXO)
++#endif
+ 
+ #include <stdbool.h>
+ #include <stdio.h>
+diff --git a/support/junction/locations.c b/support/junction/locations.c
+index c577981..e7bc21d 100644
+--- a/support/junction/locations.c
++++ b/support/junction/locations.c
+@@ -63,7 +63,7 @@ nfs_free_string_array(char **array)
+  *
+  * Caller must free the returned array with nfs_free_string_array()
+  */
+-__attribute_malloc__ char **
++__attribute__((__malloc__)) char **
+ nfs_dup_string_array(char **array)
+ {
+ 	unsigned int size, i;
+diff --git a/support/junction/nfs.c b/support/junction/nfs.c
+index 73e3533..06960ee 100644
+--- a/support/junction/nfs.c
++++ b/support/junction/nfs.c
+@@ -70,6 +70,9 @@
+ 
+ #include <sys/types.h>
+ #include <sys/stat.h>
++#ifndef ALLPERMS
++#define ALLPERMS (S_ISUID|S_ISGID|S_ISVTX|S_IRWXU|S_IRWXG|S_IRWXO)
++#endif
+ 
+ #include <stdbool.h>
+ #include <stdio.h>
+diff --git a/support/junction/path.c b/support/junction/path.c
+index 13a1438..2aad915 100644
+--- a/support/junction/path.c
++++ b/support/junction/path.c
+@@ -23,6 +23,14 @@
+  *	http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
+  */
+ 
++#ifdef HAVE_CONFIG_H
++#include <config.h>
++#endif
++
++#ifdef HAVE_LIMITS_H
++#include <limits.h>
++#endif
++
+ #include <sys/types.h>
+ #include <sys/stat.h>
+ 
+@@ -99,7 +107,7 @@ nsdb_alloc_zero_component_pathname(char ***path_array)
+  * Remove multiple sequential slashes and any trailing slashes,
+  * but leave "/" by itself alone.
+  */
+-static __attribute_malloc__ char *
++static __attribute__((__malloc__)) char *
+ nsdb_normalize_path(const char *pathname)
+ {
+ 	size_t i, j, len;
+-- 
+2.41.0
+
