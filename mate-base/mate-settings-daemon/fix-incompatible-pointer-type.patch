@@ -1,0 +1,11 @@
+--- a/plugins/a11y-keyboard/msd-a11y-keyboard-atspi.c	2023-06-26 02:43:30.358555199 +0200
++++ b/plugins/a11y-keyboard/msd-a11y-keyboard-atspi.c	2023-06-26 02:46:17.316737651 +0200
+@@ -128,7 +128,7 @@
+         /* init AT-SPI if needed */
+         atspi_init ();
+ 
+-        self->listener = atspi_device_listener_new (on_key_press_event,
++        self->listener = atspi_device_listener_new ((AtspiDeviceListenerCB)on_key_press_event,
+                                                     self, NULL);
+ #endif
+         register_deregister_events (self, TRUE);
