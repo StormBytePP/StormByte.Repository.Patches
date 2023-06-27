@@ -1,0 +1,24 @@
+From 262e57c1c32cd1b0ae943795d915f07af7f49238 Mon Sep 17 00:00:00 2001
+From: root <root@Wesker.Umbrella>
+Date: Tue, 27 Jun 2023 16:33:16 +0000
+Subject: [PATCH] Fixed missing include (which fails with clang+musl)
+
+---
+ bridge/mdb.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/bridge/mdb.c b/bridge/mdb.c
+index fbb4f70..1529d83 100644
+--- a/bridge/mdb.c
++++ b/bridge/mdb.c
+@@ -7,6 +7,7 @@
+ #include <stdlib.h>
+ #include <unistd.h>
+ #include <fcntl.h>
++#include <limits.h>
+ #include <sys/socket.h>
+ #include <net/if.h>
+ #include <netinet/in.h>
+-- 
+2.41.0
+
