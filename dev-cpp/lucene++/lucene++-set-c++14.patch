@@ -1,5 +1,5 @@
---- CMakeLists.txt.orig	2023-10-03 16:13:27.247211720 +0200
-+++ CMakeLists.txt	2023-10-03 16:13:54.233384616 +0200
+--- a/CMakeLists.txt	2023-10-03 16:13:27.247211720 +0200
++++ b/CMakeLists.txt	2023-10-03 16:13:54.233384616 +0200
 @@ -12,6 +12,10 @@
    "${lucene++_VERSION_MAJOR}.${lucene++_VERSION_MINOR}.${lucene++_VERSION_PATCH}"
  )
