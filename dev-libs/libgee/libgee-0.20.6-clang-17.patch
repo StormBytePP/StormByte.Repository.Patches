@@ -1,0 +1,91 @@
+diff --git a/gee/hashmap.c b/gee/hashmap.c
+index a9aabdf..7e7e278 100644
+--- a/gee/hashmap.c
++++ b/gee/hashmap.c
+@@ -4086,7 +4086,7 @@ gee_hash_map_map_iterator_gee_map_iterator_interface_init (GeeMapIteratorIface *
+ 	iface->next = (gboolean (*) (GeeMapIterator*)) gee_hash_map_node_iterator_next;
+ 	iface->has_next = (gboolean (*) (GeeMapIterator*)) gee_hash_map_node_iterator_has_next;
+ 	iface->get_mutable = gee_hash_map_map_iterator_real_get_mutable;
+-	iface->get_read_only = gee_hash_map_map_iterator_real_get_read_only;
++	iface->get_read_only = (gboolean (*) (GeeMapIterator*)) gee_hash_map_map_iterator_real_get_read_only;
+ 	iface->get_valid = (gboolean (*) (GeeMapIterator *)) gee_hash_map_node_iterator_get_valid;
+ }
+ 
+diff --git a/gee/treemap.c b/gee/treemap.c
+index af3233b..40504b8 100644
+--- a/gee/treemap.c
++++ b/gee/treemap.c
+@@ -13955,7 +13955,7 @@ gee_tree_map_map_iterator_gee_map_iterator_interface_init (GeeMapIteratorIface *
+ 	iface->next = (gboolean (*) (GeeMapIterator*)) gee_tree_map_node_iterator_next;
+ 	iface->has_next = (gboolean (*) (GeeMapIterator*)) gee_tree_map_node_iterator_has_next;
+ 	iface->unset = (void (*) (GeeMapIterator*)) gee_tree_map_node_iterator_unset;
+-	iface->get_read_only = gee_tree_map_map_iterator_real_get_read_only;
++	iface->get_read_only = (gboolean (*) (GeeMapIterator*)) gee_tree_map_map_iterator_real_get_read_only;
+ 	iface->get_mutable = gee_tree_map_map_iterator_real_get_mutable;
+ 	iface->get_valid = (gboolean (*) (GeeMapIterator *)) gee_tree_map_node_iterator_get_valid;
+ }
+@@ -14320,7 +14320,7 @@ gee_tree_map_sub_map_iterator_gee_map_iterator_interface_init (GeeMapIteratorIfa
+ 	iface->next = (gboolean (*) (GeeMapIterator*)) gee_tree_map_sub_node_iterator_next;
+ 	iface->has_next = (gboolean (*) (GeeMapIterator*)) gee_tree_map_sub_node_iterator_has_next;
+ 	iface->unset = (void (*) (GeeMapIterator*)) gee_tree_map_sub_node_iterator_unset;
+-	iface->get_read_only = gee_tree_map_sub_map_iterator_real_get_read_only;
++	iface->get_read_only = (gboolean (*) (GeeMapIterator*)) gee_tree_map_sub_map_iterator_real_get_read_only;
+ 	iface->get_mutable = gee_tree_map_sub_map_iterator_real_get_mutable;
+ 	iface->get_valid = (gboolean (*) (GeeMapIterator *)) gee_tree_map_sub_node_iterator_get_valid;
+ }
+diff --git a/tests/testcase.c b/tests/testcase.c
+index 18fdf82..8531657 100644
+--- a/tests/testcase.c
++++ b/tests/testcase.c
+@@ -160,16 +160,16 @@ static void _vala_array_add1 (GeeTestCaseAdaptor** * array,
+ static const gchar* gee_test_case_adaptor_get_name (GeeTestCaseAdaptor* self);
+ static void gee_test_case_adaptor_set_up (GeeTestCaseAdaptor* self,
+                                    void* fixture);
+-static void _gee_test_case_adaptor_set_up_gtest_fixture_func (void* fixture,
+-                                                       gpointer self);
++static void _gee_test_case_adaptor_set_up_gtest_fixture_func (gpointer fixture,
++                                                       gconstpointer self);
+ static void gee_test_case_adaptor_run (GeeTestCaseAdaptor* self,
+                                 void* fixture);
+-static void _gee_test_case_adaptor_run_gtest_fixture_func (void* fixture,
+-                                                    gpointer self);
++static void _gee_test_case_adaptor_run_gtest_fixture_func (gpointer fixture,
++                                                    gconstpointer self);
+ static void gee_test_case_adaptor_tear_down (GeeTestCaseAdaptor* self,
+                                       void* fixture);
+-static void _gee_test_case_adaptor_tear_down_gtest_fixture_func (void* fixture,
+-                                                          gpointer self);
++static void _gee_test_case_adaptor_tear_down_gtest_fixture_func (gpointer fixture,
++                                                          gconstpointer self);
+ static void gee_test_case_real_set_up (GeeTestCase* self);
+ static void gee_test_case_real_tear_down (GeeTestCase* self);
+ VALA_EXTERN GTestSuite* gee_test_case_get_suite (GeeTestCase* self);
+@@ -226,22 +226,22 @@ _vala_array_add1 (GeeTestCaseAdaptor** * array,
+ }
+ 
+ static void
+-_gee_test_case_adaptor_set_up_gtest_fixture_func (void* fixture,
+-                                                  gpointer self)
++_gee_test_case_adaptor_set_up_gtest_fixture_func (gpointer fixture,
++                                                  gconstpointer self)
+ {
+ 	gee_test_case_adaptor_set_up ((GeeTestCaseAdaptor*) self, fixture);
+ }
+ 
+ static void
+-_gee_test_case_adaptor_run_gtest_fixture_func (void* fixture,
+-                                               gpointer self)
++_gee_test_case_adaptor_run_gtest_fixture_func (gpointer fixture,
++                                               gconstpointer self)
+ {
+ 	gee_test_case_adaptor_run ((GeeTestCaseAdaptor*) self, fixture);
+ }
+ 
+ static void
+-_gee_test_case_adaptor_tear_down_gtest_fixture_func (void* fixture,
+-                                                     gpointer self)
++_gee_test_case_adaptor_tear_down_gtest_fixture_func (gpointer fixture,
++                                                     gconstpointer self)
+ {
+ 	gee_test_case_adaptor_tear_down ((GeeTestCaseAdaptor*) self, fixture);
+ }
