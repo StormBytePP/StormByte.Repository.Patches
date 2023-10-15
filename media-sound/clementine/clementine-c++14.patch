@@ -39,3 +39,16 @@
  
  set(SINGLEAPP-SOURCES
      qtlocalpeer.cpp
+--- a/CMakeLists.txt	2023-10-15 04:07:44.290566727 +0200
++++ b/CMakeLists.txt	2023-10-15 04:08:01.761677599 +0200
+@@ -3,6 +3,10 @@
+ cmake_minimum_required(VERSION 3.0.0)
+ cmake_policy(SET CMP0053 OLD)
+ 
++set(CMAKE_CXX_STANDARD 14)
++set(CMAKE_CXX_STANDARD_REQUIRED ON)
++set(CMAKE_CXX_EXTENSIONS OFF)
++
+ include(CheckCXXCompilerFlag)
+ include(FindPkgConfig)
+ include(cmake/C++11Compat.cmake)
