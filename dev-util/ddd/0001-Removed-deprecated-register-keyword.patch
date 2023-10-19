@@ -1,0 +1,395 @@
+From a063889907215b7bf18bf9f484f880f9facf22da Mon Sep 17 00:00:00 2001
+From: "David C. Manuelda" <StormByte@gmail.com>
+Date: Thu, 19 Oct 2023 13:48:59 +0200
+Subject: [PATCH] Removed deprecated register keyword
+
+---
+ ddd/glob.C      | 34 +++++++++++++++++-----------------
+ ddd/my-dirent.h |  2 +-
+ ddd/rxscan.C    | 42 +++++++++++++++++++++---------------------
+ ddd/strclass.C  |  4 ++--
+ ddd/vsl-lex.C   | 42 +++++++++++++++++++++---------------------
+ 5 files changed, 62 insertions(+), 62 deletions(-)
+
+diff --git a/ddd/glob.C b/ddd/glob.C
+index 663d460..4862c07 100644
+--- a/ddd/glob.C
++++ b/ddd/glob.C
+@@ -78,8 +78,8 @@ static int glob_match_after_star (const char *pattern, const char *text);
+ int
+ glob_pattern_p (const char *pattern)
+ {
+-  register const char *p = pattern;
+-  register char c;
++  const char *p = pattern;
++  char c;
+   int	open = 0;
+ 
+   while ((c = *p++) != '\0')
+@@ -127,8 +127,8 @@ glob_pattern_p (const char *pattern)
+ int
+ glob_match (const char *pattern, const char *text, int dot_special)
+ {
+-  register char const *p = pattern, *t = text;
+-  register char c;
++  char const *p = pattern, *t = text;
++  char c;
+ 
+   while ((c = *p++) != '\0')
+     switch (c)
+@@ -152,7 +152,7 @@ glob_match (const char *pattern, const char *text, int dot_special)
+ 
+       case '[':
+ 	{
+-	  register char c1 = *t++;
++	  char c1 = *t++;
+ 	  int invert;
+ 
+ 	  if (!c1)
+@@ -165,7 +165,7 @@ glob_match (const char *pattern, const char *text, int dot_special)
+ 	  c = *p++;
+ 	  while (1)
+ 	    {
+-	      register char cstart = c, cend = c;
++	      char cstart = c, cend = c;
+ 
+ 	      if (c == '\\')
+ 		{
+@@ -225,8 +225,8 @@ glob_match (const char *pattern, const char *text, int dot_special)
+ static int
+ glob_match_after_star (const char *pattern, const char *text)
+ {
+-  register const char *p = pattern, *t = text;
+-  register char c, c1;
++  const char *p = pattern, *t = text;
++  char c, c1;
+ 
+   while ((c = *p++) == '?' || c == '*')
+     if (c == '?' && *t++ == '\0')
+@@ -275,14 +275,14 @@ glob_vector (const char *pat, const char *dir)
+     };
+ 
+   DIR *d;
+-  register struct dirent *dp;
++  struct dirent *dp;
+   struct globval *lastlink;
+-  register struct globval *nextlink;
+-  register char *nextname;
++  struct globval *nextlink;
++  char *nextname;
+   unsigned int count;
+   int lose;
+-  register char **name_vector = 0;
+-  register unsigned int i;
++  char **name_vector = 0;
++  unsigned int i;
+ #if defined (OPENDIR_NOT_ROBUST)
+   struct stat finfo;
+ 
+@@ -374,7 +374,7 @@ glob_vector (const char *pat, const char *dir)
+ static char **
+ glob_dir_to_array (char *dir, char **array)
+ {
+-  register unsigned int i, l;
++  unsigned int i, l;
+   int add_slash;
+   char **result;
+ 
+@@ -454,7 +454,7 @@ glob_filename (const char *pathname)
+   if (glob_pattern_p (directory_name))
+     {
+       char **directories;
+-      register unsigned int i;
++      unsigned int i;
+ 
+       if (directory_name[directory_len - 1] == '/')
+ 	directory_name[directory_len - 1] = '\0';
+@@ -493,7 +493,7 @@ glob_filename (const char *pathname)
+ 	  else
+ 	    {
+ 	      char **array = glob_dir_to_array (directories[i], temp_results);
+-	      register unsigned int l;
++	      unsigned int l;
+ 
+ 	      l = 0;
+ 	      while (array[l] != 0)
+@@ -558,7 +558,7 @@ glob_filename (const char *pathname)
+  memory_error:
+   if (result != 0)
+     {
+-      register unsigned int i;
++      unsigned int i;
+       for (i = 0; result[i] != 0; ++i)
+ 	free (result[i]);
+       free ((char *) result);
+diff --git a/ddd/my-dirent.h b/ddd/my-dirent.h
+index b0f95ea..4bf9bef 100644
+--- a/ddd/my-dirent.h
++++ b/ddd/my-dirent.h
+@@ -26,7 +26,7 @@
+ // or send a mail to the DDD developers <ddd@gnu.org>.
+ 
+ #ifndef _DDD_my_dirent_h
+-#define _DDD_my_Dirent_h
++#define _DDD_my_dirent_h
+ 
+ #include "config.h"
+ #include <sys/types.h>
+diff --git a/ddd/rxscan.C b/ddd/rxscan.C
+index be8b210..9b724a2 100644
+--- a/ddd/rxscan.C
++++ b/ddd/rxscan.C
+@@ -8698,9 +8698,9 @@ extern int dddlex (void);
+  */
+ YY_DECL
+ {
+-	register ddd_state_type ddd_current_state;
+-	register char *ddd_cp, *ddd_bp;
+-	register int ddd_act;
++	ddd_state_type ddd_current_state;
++	char *ddd_cp, *ddd_bp;
++	int ddd_act;
+     
+ #line 233 "./rxscan.L"
+ 
+@@ -8748,7 +8748,7 @@ YY_DECL
+ ddd_match:
+ 		do
+ 			{
+-			register YY_CHAR ddd_c = ddd_ec[YY_SC_TO_UI(*ddd_cp)];
++			YY_CHAR ddd_c = ddd_ec[YY_SC_TO_UI(*ddd_cp)];
+ 			if ( ddd_accept[ddd_current_state] )
+ 				{
+ 				(ddd_last_accepting_state) = ddd_current_state;
+@@ -9719,9 +9719,9 @@ case YY_STATE_EOF(INITIAL):
+  */
+ static int ddd_get_next_buffer (void)
+ {
+-    	register char *dest = YY_CURRENT_BUFFER_LVALUE->ddd_ch_buf;
+-	register char *source = (dddtext_ptr);
+-	register int number_to_move, i;
++   char *dest = YY_CURRENT_BUFFER_LVALUE->ddd_ch_buf;
++	char *source = (dddtext_ptr);
++	int number_to_move, i;
+ 	int ret_val;
+ 
+ 	if ( (ddd_c_buf_p) > &YY_CURRENT_BUFFER_LVALUE->ddd_ch_buf[(ddd_n_chars) + 1] )
+@@ -9853,14 +9853,14 @@ static int ddd_get_next_buffer (void)
+ 
+     static ddd_state_type ddd_get_previous_state (void)
+ {
+-	register ddd_state_type ddd_current_state;
+-	register char *ddd_cp;
++	ddd_state_type ddd_current_state;
++	char *ddd_cp;
+     
+ 	ddd_current_state = (ddd_start);
+ 
+ 	for ( ddd_cp = (dddtext_ptr) + YY_MORE_ADJ; ddd_cp < (ddd_c_buf_p); ++ddd_cp )
+ 		{
+-		register YY_CHAR ddd_c = (*ddd_cp ? ddd_ec[YY_SC_TO_UI(*ddd_cp)] : 3);
++		YY_CHAR ddd_c = (*ddd_cp ? ddd_ec[YY_SC_TO_UI(*ddd_cp)] : 3);
+ 		if ( ddd_accept[ddd_current_state] )
+ 			{
+ 			(ddd_last_accepting_state) = ddd_current_state;
+@@ -9885,10 +9885,10 @@ static int ddd_get_next_buffer (void)
+  */
+     static ddd_state_type ddd_try_NUL_trans  (ddd_state_type ddd_current_state )
+ {
+-	register int ddd_is_jam;
+-    	register char *ddd_cp = (ddd_c_buf_p);
++	int ddd_is_jam;
++   char *ddd_cp = (ddd_c_buf_p);
+ 
+-	register YY_CHAR ddd_c = 3;
++	YY_CHAR ddd_c = 3;
+ 	if ( ddd_accept[ddd_current_state] )
+ 		{
+ 		(ddd_last_accepting_state) = ddd_current_state;
+@@ -9906,9 +9906,9 @@ static int ddd_get_next_buffer (void)
+ 	return ddd_is_jam ? 0 : ddd_current_state;
+ }
+ 
+-    static void dddunput (int c, register char * ddd_bp )
++    static void dddunput (int c, char * ddd_bp )
+ {
+-	register char *ddd_cp;
++	char *ddd_cp;
+     
+     ddd_cp = (ddd_c_buf_p);
+ 
+@@ -9918,10 +9918,10 @@ static int ddd_get_next_buffer (void)
+ 	if ( ddd_cp < YY_CURRENT_BUFFER_LVALUE->ddd_ch_buf + 2 )
+ 		{ /* need to shift things up to make room */
+ 		/* +2 for EOB chars. */
+-		register int number_to_move = (ddd_n_chars) + 2;
+-		register char *dest = &YY_CURRENT_BUFFER_LVALUE->ddd_ch_buf[
+-					YY_CURRENT_BUFFER_LVALUE->ddd_buf_size + 2];
+-		register char *source =
++		int number_to_move = (ddd_n_chars) + 2;
++		char *dest = &YY_CURRENT_BUFFER_LVALUE->ddd_ch_buf[
++				YY_CURRENT_BUFFER_LVALUE->ddd_buf_size + 2];
++		char *source =
+ 				&YY_CURRENT_BUFFER_LVALUE->ddd_ch_buf[number_to_move];
+ 
+ 		while ( source > YY_CURRENT_BUFFER_LVALUE->ddd_ch_buf )
+@@ -10534,7 +10534,7 @@ int dddlex_destroy  (void)
+ #ifndef dddtext_ptr
+ static void ddd_flex_strncpy (char* s1, dddconst char * s2, int n )
+ {
+-	register int i;
++	int i;
+ 	for ( i = 0; i < n; ++i )
+ 		s1[i] = s2[i];
+ }
+@@ -10543,7 +10543,7 @@ static void ddd_flex_strncpy (char* s1, dddconst char * s2, int n )
+ #ifdef YY_NEED_STRLEN
+ static int ddd_flex_strlen (dddconst char * s )
+ {
+-	register int n;
++	int n;
+ 	for ( n = 0; s[n]; ++n )
+ 		;
+ 
+diff --git a/ddd/strclass.C b/ddd/strclass.C
+index be0bade..de15670 100644
+--- a/ddd/strclass.C
++++ b/ddd/strclass.C
+@@ -1543,7 +1543,7 @@ std::istream& operator>>(std::istream& s, string& x)
+     int ch;
+     unsigned i = 0;
+     x.rep = string_Sresize(x.rep, 20);
+-    register std::streambuf *sb = s.rdbuf();
++    std::streambuf *sb = s.rdbuf();
+     while ((ch = sb->sbumpc()) != EOF)
+     {
+ 	if (isspace(ch))
+@@ -1586,7 +1586,7 @@ int readline(std::istream& s, string& x, char terminator, int discard)
+     int ch;
+     unsigned i = 0;
+     x.rep = string_Sresize(x.rep, 80);
+-    register std::streambuf *sb = s.rdbuf();
++    std::streambuf *sb = s.rdbuf();
+     while ((ch = sb->sbumpc()) != EOF)
+     {
+ 	if (ch != terminator || !discard)
+diff --git a/ddd/vsl-lex.C b/ddd/vsl-lex.C
+index 8f7a9b2..6f3eccc 100644
+--- a/ddd/vsl-lex.C
++++ b/ddd/vsl-lex.C
+@@ -938,9 +938,9 @@ extern int vsllex (void);
+  */
+ YY_DECL
+ {
+-	register vsl_state_type vsl_current_state;
+-	register char *vsl_cp, *vsl_bp;
+-	register int vsl_act;
++	vsl_state_type vsl_current_state;
++	char *vsl_cp, *vsl_bp;
++	int vsl_act;
+     
+ #line 246 "./vsl-lex.L"
+ 
+@@ -990,7 +990,7 @@ YY_DECL
+ vsl_match:
+ 		do
+ 			{
+-			register YY_CHAR vsl_c = vsl_ec[YY_SC_TO_UI(*vsl_cp)];
++			YY_CHAR vsl_c = vsl_ec[YY_SC_TO_UI(*vsl_cp)];
+ 			if ( vsl_accept[vsl_current_state] )
+ 				{
+ 				(vsl_last_accepting_state) = vsl_current_state;
+@@ -1447,9 +1447,9 @@ case YY_STATE_EOF(INITIAL):
+  */
+ static int vsl_get_next_buffer (void)
+ {
+-    	register char *dest = YY_CURRENT_BUFFER_LVALUE->vsl_ch_buf;
+-	register char *source = (vsltext_ptr);
+-	register int number_to_move, i;
++    char *dest = YY_CURRENT_BUFFER_LVALUE->vsl_ch_buf;
++	char *source = (vsltext_ptr);
++	int number_to_move, i;
+ 	int ret_val;
+ 
+ 	if ( (vsl_c_buf_p) > &YY_CURRENT_BUFFER_LVALUE->vsl_ch_buf[(vsl_n_chars) + 1] )
+@@ -1581,15 +1581,15 @@ static int vsl_get_next_buffer (void)
+ 
+     static vsl_state_type vsl_get_previous_state (void)
+ {
+-	register vsl_state_type vsl_current_state;
+-	register char *vsl_cp;
++	vsl_state_type vsl_current_state;
++	char *vsl_cp;
+     
+ 	vsl_current_state = (vsl_start);
+ 	vsl_current_state += YY_AT_BOL();
+ 
+ 	for ( vsl_cp = (vsltext_ptr) + YY_MORE_ADJ; vsl_cp < (vsl_c_buf_p); ++vsl_cp )
+ 		{
+-		register YY_CHAR vsl_c = (*vsl_cp ? vsl_ec[YY_SC_TO_UI(*vsl_cp)] : 1);
++		YY_CHAR vsl_c = (*vsl_cp ? vsl_ec[YY_SC_TO_UI(*vsl_cp)] : 1);
+ 		if ( vsl_accept[vsl_current_state] )
+ 			{
+ 			(vsl_last_accepting_state) = vsl_current_state;
+@@ -1614,10 +1614,10 @@ static int vsl_get_next_buffer (void)
+  */
+     static vsl_state_type vsl_try_NUL_trans  (vsl_state_type vsl_current_state )
+ {
+-	register int vsl_is_jam;
+-    	register char *vsl_cp = (vsl_c_buf_p);
++	int vsl_is_jam;
++    char *vsl_cp = (vsl_c_buf_p);
+ 
+-	register YY_CHAR vsl_c = 1;
++	YY_CHAR vsl_c = 1;
+ 	if ( vsl_accept[vsl_current_state] )
+ 		{
+ 		(vsl_last_accepting_state) = vsl_current_state;
+@@ -1635,9 +1635,9 @@ static int vsl_get_next_buffer (void)
+ 	return vsl_is_jam ? 0 : vsl_current_state;
+ }
+ 
+-    static void vslunput (int c, register char * vsl_bp )
++    static void vslunput (int c, char * vsl_bp )
+ {
+-	register char *vsl_cp;
++	char *vsl_cp;
+     
+     vsl_cp = (vsl_c_buf_p);
+ 
+@@ -1647,10 +1647,10 @@ static int vsl_get_next_buffer (void)
+ 	if ( vsl_cp < YY_CURRENT_BUFFER_LVALUE->vsl_ch_buf + 2 )
+ 		{ /* need to shift things up to make room */
+ 		/* +2 for EOB chars. */
+-		register int number_to_move = (vsl_n_chars) + 2;
+-		register char *dest = &YY_CURRENT_BUFFER_LVALUE->vsl_ch_buf[
+-					YY_CURRENT_BUFFER_LVALUE->vsl_buf_size + 2];
+-		register char *source =
++		int number_to_move = (vsl_n_chars) + 2;
++		char *dest = &YY_CURRENT_BUFFER_LVALUE->vsl_ch_buf[
++				YY_CURRENT_BUFFER_LVALUE->vsl_buf_size + 2];
++		char *source =
+ 				&YY_CURRENT_BUFFER_LVALUE->vsl_ch_buf[number_to_move];
+ 
+ 		while ( source > YY_CURRENT_BUFFER_LVALUE->vsl_ch_buf )
+@@ -2265,7 +2265,7 @@ int vsllex_destroy  (void)
+ #ifndef vsltext_ptr
+ static void vsl_flex_strncpy (char* s1, vslconst char * s2, int n )
+ {
+-	register int i;
++	int i;
+ 	for ( i = 0; i < n; ++i )
+ 		s1[i] = s2[i];
+ }
+@@ -2274,7 +2274,7 @@ static void vsl_flex_strncpy (char* s1, vslconst char * s2, int n )
+ #ifdef YY_NEED_STRLEN
+ static int vsl_flex_strlen (vslconst char * s )
+ {
+-	register int n;
++	int n;
+ 	for ( n = 0; s[n]; ++n )
+ 		;
+ 
+-- 
+2.42.0
+
