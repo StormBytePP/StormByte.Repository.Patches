@@ -1,0 +1,28 @@
+--- a/src/gtkhex.c	2023-10-20 08:46:48.908326940 +0200
++++ b/src/gtkhex.c	2023-10-20 08:48:36.279989231 +0200
+@@ -1890,6 +1890,7 @@
+ 
+ 	/* FIXME - This could use a cleanup. Mostly flown in from old code.
+ 	 */
++	gint64 line_beg, line_end;
+ 	switch(keyval)
+ 	{
+ 		case GDK_KEY_BackSpace:
+@@ -1941,7 +1942,7 @@
+ 			break;
+ 
+ 		case GDK_KEY_Home:
+-			gint64 line_beg = self->cursor_pos;
++			line_beg = self->cursor_pos;
+ 
+ 			while (line_beg % self->cpl != 0)
+ 				--line_beg;
+@@ -1951,7 +1952,7 @@
+ 			break;
+ 
+ 		case GDK_KEY_End:
+-			gint64 line_end = self->cursor_pos;
++			line_end = self->cursor_pos;
+ 
+ 			while (line_end % self->cpl != self->cpl - 1)
+ 				++line_end;
