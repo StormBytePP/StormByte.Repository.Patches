@@ -1,0 +1,47 @@
+--- a/thunar/thunar-gio-extensions.c	2024-01-08 11:50:32.382789880 +0100
++++ b/thunar/thunar-gio-extensions.c	2024-01-08 11:53:42.690722310 +0100
+@@ -1571,6 +1571,7 @@
+                                   const gchar *setting_name,
+                                   const gchar *setting_value)
+ {
++  gchar **setting_values;
+   switch (type)
+     {
+       case THUNAR_GTYPE_STRING:
+@@ -1578,7 +1579,6 @@
+         break;
+ 
+       case THUNAR_GTYPE_STRINGV:
+-        gchar **setting_values;
+         setting_values = g_strsplit (setting_value, THUNAR_METADATA_STRING_DELIMETER, 100);
+         g_file_info_set_attribute_stringv (info, setting_name, setting_values);
+         g_strfreev (setting_values);
+@@ -1597,15 +1597,18 @@
+                                   ThunarGType  type,
+                                   const gchar *setting_name)
+ {
++  gchar **stringv;
++  GList  *string_list;
++  gchar  *joined_string;
+   switch (type)
+     {
+       case THUNAR_GTYPE_STRING:
+         return g_strdup (g_file_info_get_attribute_string (info, setting_name));
+ 
+       case THUNAR_GTYPE_STRINGV:
+-        gchar **stringv = g_file_info_get_attribute_stringv (info, setting_name);
+-        GList  *string_list = NULL;
+-        gchar  *joined_string = NULL;
++        stringv = g_file_info_get_attribute_stringv (info, setting_name);
++        string_list = NULL;
++        joined_string = NULL;
+ 
+         if (stringv == NULL)
+           return NULL;
+@@ -1760,4 +1763,4 @@
+   g_free (attr_name);
+ 
+   return attr_value;
+-}
+\ No hay ningún carácter de nueva línea al final del archivo
++}
