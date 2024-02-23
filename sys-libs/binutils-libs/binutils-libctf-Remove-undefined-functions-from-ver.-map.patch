@@ -1,0 +1,118 @@
+From mboxrd@z Thu Jan  1 00:00:00 1970
+Return-Path: <SRS0=02JS=IH=gmail.com=nvinson234@sourceware.org>
+Received: from mail-qk1-x72a.google.com (mail-qk1-x72a.google.com [IPv6:2607:f8b0:4864:20::72a])
+	by sourceware.org (Postfix) with ESMTPS id E4D6B3858D28
+	for <binutils@sourceware.org>; Thu, 28 Dec 2023 19:10:26 +0000 (GMT)
+DMARC-Filter: OpenDMARC Filter v1.4.2 sourceware.org E4D6B3858D28
+Authentication-Results: sourceware.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: sourceware.org; spf=pass smtp.mailfrom=gmail.com
+ARC-Filter: OpenARC Filter v1.0.0 sourceware.org E4D6B3858D28
+Authentication-Results: server2.sourceware.org; arc=none smtp.remote-ip=2607:f8b0:4864:20::72a
+ARC-Seal: i=1; a=rsa-sha256; d=sourceware.org; s=key; t=1703790628; cv=none;
+	b=cmbKTgZz8ubXWdx3gxNF/YGU4wTDUa3AfXxp+mAnGwq2qQeeegkS1xISrB4S4PbZ7Wwr/EsJZ40ZxytMBU/PwML7ehgEKp7+EI5mn1Qc3/vUnZwPTJYCjWRq6Q/B9GweBbH9/YTmQQP1WQZ9g4wKRSM80Oa+XYomXEgWtIvC82g=
+ARC-Message-Signature: i=1; a=rsa-sha256; d=sourceware.org; s=key;
+	t=1703790628; c=relaxed/simple;
+	bh=Xrfd6Gjv8oeLEcqw4XRqM6CMtEd37L5J+1Elb3DRovQ=;
+	h=DKIM-Signature:From:To:Subject:Date:Message-ID:MIME-Version; b=tun7bswv2Exd9zEiHkOCKN4NTfinccisj2+Ikm2aR3M1NOgmf1aiNvWALvah0P+NXMQJLpX4FIqqhEOuhXlNRSPXImfmAEO4ws7Njt4H88zJQFJ0jMcjPPT4im/e0m+7oOI5ZP9K7ulkzWeNcLzXMGhqkRUBp5z4e5wrwcQJfrQ=
+ARC-Authentication-Results: i=1; server2.sourceware.org
+Received: by mail-qk1-x72a.google.com with SMTP id af79cd13be357-781048954d9so522054485a.1
+        for <binutils@sourceware.org>; Thu, 28 Dec 2023 11:10:26 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1703790625; x=1704395425; darn=sourceware.org;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=I7OnADnjpvygoD1Px6UenX80uRtx8lR+xNkuhRwIDy0=;
+        b=YkPyLRp1rOcTZD9Gn6LqCEpycREK4ydZcNbkkqhRpGjk8P3u9ACts9zg1ZFFq0q/P8
+         b1TFCX1EIMXdNJFDePDmj0Em7BE4kZ9VABTZDSmwMdaNHZcYFC6jpCAFkdSCq2AVgBnU
+         y+X9fFkrP3dLSt6lmDLGyURAGxmWdThFhYFIt9gmuW6QV63qUBnzpZawS+Yg2Vgy6n6K
+         ANOsNMOXp19mQZxUNdmJMflp5qVrSP5w4M7km/qKBel4plHZPr3jQFML6lxZ8vek2L9v
+         RG9kDDxG5pJrAeLjrCNToMqnU5lXHydbxaLJQ9WDttUdkAhnBscM+dQQ3l3XbvHJ4Qg2
+         ALEQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1703790625; x=1704395425;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=I7OnADnjpvygoD1Px6UenX80uRtx8lR+xNkuhRwIDy0=;
+        b=s0eYLaZzSVqOn2phUo61EdM2+TretG4OcUmsP118vnol5HTVeWPl+E1sYnB4zGkdEe
+         AAY6Cy3+7UsfT2E9zbh1U5HvxJR2r7H/aAiGl5uaaKdg7j4iFRUDJgmbuRUly7KFLapz
+         YXYUirEd2VMDDcGv68xhmrmeh280xkRva1vT4G3LtuX6Bi2ppGO86LkwZoKw4IrIEDDK
+         lQKc4E9PHKtnpEca2BILsG1ryYn2OkRIanIQdO1wMPpnhWZjcgyorQZCT0E5jQ5ebPiZ
+         VVoji/nkHbqV6jmtGqueymzkRh1A6h/yZDlZ/AwGLUGd0kBg6jBl35n7pYGrjp3JzNjc
+         47FQ==
+X-Gm-Message-State: AOJu0Yy4E363SN1m5M0R9N4T7DHL+4Znqmj/qWZLrr0gURKmM1H9YKJ9
+	RmgtG9BGapZmPnsPIXoWDuqe7WMgDCo=
+X-Google-Smtp-Source: AGHT+IEtTKbvODmyiird5GhMwmxlDBznjMTEbxALRMu7lT8cyVFczf8hF23qw0nC+YIm1pJNtoIGfw==
+X-Received: by 2002:a0c:c58c:0:b0:680:3f01:1f1d with SMTP id a12-20020a0cc58c000000b006803f011f1dmr4969331qvj.126.1703790625281;
+        Thu, 28 Dec 2023 11:10:25 -0800 (PST)
+Received: from localhost.localdomain ([2602:47:d950:3e00:3153:956f:6dcc:8032])
+        by smtp.googlemail.com with ESMTPSA id da7-20020a05621408c700b0067f2c03d4adsm6449965qvb.100.2023.12.28.11.10.24
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Thu, 28 Dec 2023 11:10:24 -0800 (PST)
+From: Nicholas Vinson <nvinson234@gmail.com>
+To: binutils@sourceware.org
+Cc: Nicholas Vinson <nvinson234@gmail.com>
+Subject: [binutils] libctf: Remove undefined functions from ver. map
+Date: Thu, 28 Dec 2023 14:10:09 -0500
+Message-ID: <dfda42d963b25d850378908cba48533561fc5577.1703790579.git.nvinson234@gmail.com>
+X-Mailer: git-send-email 2.43.0
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+X-Spam-Status: No, score=-9.4 required=5.0 tests=BAYES_00,DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,FREEMAIL_ENVFROM_END_DIGIT,FREEMAIL_FROM,GIT_PATCH_0,RCVD_IN_DNSWL_NONE,SPF_HELO_NONE,SPF_PASS,TXREP,T_SCC_BODY_TEXT_LINE autolearn=ham autolearn_force=no version=3.4.6
+X-Spam-Checker-Version: SpamAssassin 3.4.6 (2021-04-09) on server2.sourceware.org
+List-Id: <binutils.sourceware.org>
+
+The functions ctf_label_set(), ctf_label_get(), ctf_arc_open(), ctf_fdopen(),
+ctf_open(), ctf_bfdopen(), and ctf_bfdopen_ctfsect() are not defined. Their
+inclusion in libctf/libctf.ver causes clang/llvm LTO optimizatiosn to fail with
+error messages similar to
+
+    error: version script assignment of LIBCTF_1.0 to symbol ctf_label_set
+    failed: symbol not defined
+
+This patch fixes the issue by removing the symbol names from libctf/libctf.ver
+
+Fixes Gentoo bug 914640 (https://bugs.gentoo.org/914640)
+
+Signed-off-by: Nicholas Vinson <nvinson234@gmail.com>
+---
+ libctf/libctf.ver | 8 --------
+ 1 file changed, 8 deletions(-)
+
+diff --git a/libctf/libctf.ver b/libctf/libctf.ver
+index 0ff825d033b..08e1b27341f 100644
+--- a/libctf/libctf.ver
++++ b/libctf/libctf.ver
+@@ -80,9 +80,6 @@ LIBCTF_1.0 {
+ 	ctf_enum_name;
+ 	ctf_enum_value;
+ 
+-	ctf_label_set;
+-	ctf_label_get;
+-
+ 	ctf_label_topmost;
+ 	ctf_label_info;
+ 
+@@ -139,7 +136,6 @@ LIBCTF_1.0 {
+ 
+ 	ctf_arc_write;
+ 	ctf_arc_write_fd;
+-	ctf_arc_open;
+ 	ctf_arc_bufopen;
+ 	ctf_arc_close;
+ 	ctf_arc_open_by_name;
+@@ -165,10 +161,6 @@ LIBCTF_1.0 {
+ 	ctf_link_shuffle_syms;
+ 	ctf_link_write;
+ 
+-	ctf_fdopen;                             /* libctf only.  */
+-	ctf_open;                               /* libctf only.  */
+-	ctf_bfdopen;                            /* libctf only.  */
+-	ctf_bfdopen_ctfsect;                    /* libctf only.  */
+     local:
+ 	*;
+ };
+-- 
+2.43.0
+
+
