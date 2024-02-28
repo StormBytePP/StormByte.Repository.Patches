@@ -31,11 +31,11 @@ diff --git a/make/hotspot/lib/JvmMapfile.gmk b/make/hotspot/lib/JvmMapfile.gmk
 index 2808ac2af03..6a8f22454b0 100644
 --- a/make/hotspot/lib/JvmMapfile.gmk
 +++ b/make/hotspot/lib/JvmMapfile.gmk
-@@ -53,7 +53,7 @@ endif
+@@ -53,7 +53,7 @@
  # platform dependent.
  
  ifeq ($(call isTargetOs, linux), true)
--  DUMP_SYMBOLS_CMD := $(NM) $(NMFLAGS) --defined-only *$(OBJ_SUFFIX)
+-  DUMP_SYMBOLS_CMD := $(NM) --defined-only *$(OBJ_SUFFIX)
 +  DUMP_SYMBOLS_CMD := $(NM) $(NMFLAGS) --defined-only --extern-only *$(OBJ_SUFFIX)
    ifneq ($(FILTER_SYMBOLS_PATTERN), )
      FILTER_SYMBOLS_PATTERN := $(FILTER_SYMBOLS_PATTERN)|
