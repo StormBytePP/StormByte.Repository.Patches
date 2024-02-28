@@ -1,18 +1,5 @@
---- a/avidemux_core/ADM_coreImage/src/ADM_colorspace.cpp	2023-03-06 12:46:13.259861709 +0100
-+++ b/avidemux_core/ADM_coreImage/src/ADM_colorspace.cpp	2023-03-06 12:48:06.316534319 +0100
-@@ -637,8 +637,8 @@
-     }
-     
-     // resize plane
--    int xs[4]={ADM_IMAGE_ALIGN(arg->srcWidth),0,0,0};
--    int xd[4]={ADM_IMAGE_ALIGN(arg->dstWidth),0,0,0};
-+    int xs[4]={static_cast<int>(ADM_IMAGE_ALIGN(arg->srcWidth)),0,0,0};
-+    int xd[4]={static_cast<int>(ADM_IMAGE_ALIGN(arg->dstWidth)),0,0,0};
-     uint8_t *src[4]={NULL,NULL,NULL,NULL};
-     uint8_t *dst[4]={NULL,NULL,NULL,NULL};
-     src[0]=arg->iPlane;
---- a/avidemux_core/ADM_core/include/ADM_assert.h	2023-03-06 12:48:30.043202230 +0100
-+++ b/avidemux_core/ADM_core/include/ADM_assert.h	2023-03-06 12:49:00.036537125 +0100
+--- avidemux_core/ADM_core/include/ADM_assert.h.orig	2024-02-28 21:59:03.484461353 +0100
++++ avidemux_core/ADM_core/include/ADM_assert.h	2024-02-28 21:59:31.259610462 +0100
 @@ -69,10 +69,6 @@
  
  #define ADM_dealloc(x) ADM_dezalloc( (void *)x)
