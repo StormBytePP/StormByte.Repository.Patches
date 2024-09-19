@@ -1,0 +1,25 @@
+From fc657b834f918a90452d9953a0a68afedbe5b01f Mon Sep 17 00:00:00 2001
+From: "David C. Manuelda" <StormByte@gmail.com>
+Date: Thu, 19 Sep 2024 18:13:58 +0200
+Subject: [PATCH 2/4] third_party/crashpad: Fix throw missing specification
+
+---
+ .../crashpad/crashpad/compat/linux/sys/mman_memfd_create.cc     | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/3rdparty/chromium/third_party/crashpad/crashpad/compat/linux/sys/mman_memfd_create.cc b/src/3rdparty/chromium/third_party/crashpad/crashpad/compat/linux/sys/mman_memfd_create.cc
+index e0ee5a40b..dc6502dee 100644
+--- a/src/3rdparty/chromium/third_party/crashpad/crashpad/compat/linux/sys/mman_memfd_create.cc
++++ b/src/3rdparty/chromium/third_party/crashpad/crashpad/compat/linux/sys/mman_memfd_create.cc
+@@ -24,7 +24,7 @@
+ 
+ extern "C" {
+ 
+-int memfd_create(const char* name, unsigned int flags) {
++int memfd_create(const char* name, unsigned int flags) throw() {
+   static const crashpad::NoCfiIcall<decltype(memfd_create)*> next_memfd_create(
+       dlsym(RTLD_NEXT, "memfd_create"));
+   return next_memfd_create ? next_memfd_create(name, flags)
+-- 
+2.46.0
+

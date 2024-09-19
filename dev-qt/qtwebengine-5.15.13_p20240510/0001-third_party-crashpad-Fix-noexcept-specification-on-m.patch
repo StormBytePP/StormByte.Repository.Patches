@@ -1,0 +1,26 @@
+From 1fcb3e6ea60a993768f1d6d39a8bd1860c493ea3 Mon Sep 17 00:00:00 2001
+From: "David C. Manuelda" <StormByte@gmail.com>
+Date: Thu, 19 Sep 2024 18:10:02 +0200
+Subject: [PATCH 1/4] third_party/crashpad: Fix noexcept specification on move
+ constructor
+
+---
+ .../third_party/perfetto/include/perfetto/ext/base/subprocess.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/3rdparty/chromium/third_party/perfetto/include/perfetto/ext/base/subprocess.h b/src/3rdparty/chromium/third_party/perfetto/include/perfetto/ext/base/subprocess.h
+index 6addd39d4..b11ce2f9b 100644
+--- a/src/3rdparty/chromium/third_party/perfetto/include/perfetto/ext/base/subprocess.h
++++ b/src/3rdparty/chromium/third_party/perfetto/include/perfetto/ext/base/subprocess.h
+@@ -173,7 +173,7 @@ class Subprocess {
+   };
+ 
+   explicit Subprocess(std::initializer_list<std::string> exec_cmd = {});
+-  Subprocess(Subprocess&&);
++  Subprocess(Subprocess&&) noexcept;
+   Subprocess& operator=(Subprocess&&);
+   ~Subprocess();  // It will KillAndWaitForTermination() if still alive.
+ 
+-- 
+2.46.0
+
