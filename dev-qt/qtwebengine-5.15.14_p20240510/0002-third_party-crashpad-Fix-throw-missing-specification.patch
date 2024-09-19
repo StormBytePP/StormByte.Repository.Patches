@@ -1,7 +1,7 @@
-From fc657b834f918a90452d9953a0a68afedbe5b01f Mon Sep 17 00:00:00 2001
+From 68e6aa754fab57d6f7b5374542241043868893cc Mon Sep 17 00:00:00 2001
 From: "David C. Manuelda" <StormByte@gmail.com>
-Date: Thu, 19 Sep 2024 18:13:58 +0200
-Subject: [PATCH 2/4] third_party/crashpad: Fix throw missing specification
+Date: Thu, 19 Sep 2024 19:58:37 +0200
+Subject: [PATCH 2/5] third_party/crashpad: Fix throw missing specification
 
 ---
  .../crashpad/crashpad/compat/linux/sys/mman_memfd_create.cc     | 2 +-

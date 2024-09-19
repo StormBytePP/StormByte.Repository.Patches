@@ -1,8 +1,8 @@
-From 1fcb3e6ea60a993768f1d6d39a8bd1860c493ea3 Mon Sep 17 00:00:00 2001
+From 754012b6c24c0783311f00182f9f36c98a2bf739 Mon Sep 17 00:00:00 2001
 From: "David C. Manuelda" <StormByte@gmail.com>
-Date: Thu, 19 Sep 2024 18:10:02 +0200
-Subject: [PATCH 1/4] third_party/crashpad: Fix noexcept specification on move
- constructor
+Date: Thu, 19 Sep 2024 19:58:00 +0200
+Subject: [PATCH 1/5] third_party/crashpad: Fix noexcept specification on
+ SubProcess move constructor
 
 ---
  .../third_party/perfetto/include/perfetto/ext/base/subprocess.h | 2 +-

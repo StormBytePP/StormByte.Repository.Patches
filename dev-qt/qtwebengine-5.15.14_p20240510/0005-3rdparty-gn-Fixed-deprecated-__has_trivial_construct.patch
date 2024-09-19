@@ -1,0 +1,26 @@
+From 8d5365d72e3b4ca69787d5817893482163b3d3c7 Mon Sep 17 00:00:00 2001
+From: "David C. Manuelda" <StormByte@gmail.com>
+Date: Thu, 19 Sep 2024 20:01:28 +0200
+Subject: [PATCH 5/5] 3rdparty/gn: Fixed deprecated __has_trivial_constructor
+ and __has_trivial_destructor in favor of their non deprecated ones
+
+---
+ src/3rdparty/gn/base/template_util.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/3rdparty/gn/base/template_util.h b/src/3rdparty/gn/base/template_util.h
+index dda9587ff..b5b43842c 100644
+--- a/src/3rdparty/gn/base/template_util.h
++++ b/src/3rdparty/gn/base/template_util.h
+@@ -123,7 +123,7 @@ struct is_trivially_copyable {
+   static constexpr bool value = __is_trivially_copyable(T);
+ #else
+   static constexpr bool value =
+-      __has_trivial_copy(T) && __has_trivial_destructor(T);
++      __is_trivially_copyable(T) && __is_trivially_destructible(T);
+ #endif
+ };
+ #else
+-- 
+2.46.0
+

@@ -1,8 +1,9 @@
-From 0982621b28e21164834bb15a2359c850ca4a0b0b Mon Sep 17 00:00:00 2001
+From 4d0a2f712fd56db181b77b7c1bbe1605484d6cd8 Mon Sep 17 00:00:00 2001
 From: "David C. Manuelda" <StormByte@gmail.com>
-Date: Thu, 19 Sep 2024 19:04:39 +0200
-Subject: [PATCH 4/4] Fixed deprecated __has_trivial_destructor in favor of
- __is_trivially_destructible
+Date: Thu, 19 Sep 2024 19:59:47 +0200
+Subject: [PATCH 4/5] 3rdparty/chromium: Fixed deprecated
+ __has_trivial_constructor and __has_trivial_destructor in favor of their non
+ deprecated ones
 
 ---
  src/3rdparty/chromium/base/template_util.h | 2 +-

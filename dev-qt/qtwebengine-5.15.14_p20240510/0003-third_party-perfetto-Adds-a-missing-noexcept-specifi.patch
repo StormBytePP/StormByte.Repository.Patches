@@ -1,7 +1,7 @@
-From a7c1f665d0d6a1c77c3a4d12e1b5fef0cbcf3e4e Mon Sep 17 00:00:00 2001
+From 872b70347d52f4272976fae01b28ad10ff2b7d21 Mon Sep 17 00:00:00 2001
 From: "David C. Manuelda" <StormByte@gmail.com>
-Date: Thu, 19 Sep 2024 18:55:20 +0200
-Subject: [PATCH 3/4] third_party/perfetto: Adds a missing noexcept
+Date: Thu, 19 Sep 2024 19:59:09 +0200
+Subject: [PATCH 3/5] third_party/perfetto: Adds a missing noexcept
  specification
 
 ---
