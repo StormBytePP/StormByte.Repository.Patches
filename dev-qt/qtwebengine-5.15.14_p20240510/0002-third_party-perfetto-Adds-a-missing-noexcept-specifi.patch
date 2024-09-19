@@ -1,9 +1,10 @@
-From 872b70347d52f4272976fae01b28ad10ff2b7d21 Mon Sep 17 00:00:00 2001
+From 59b846ac7fb2e4744995bdb7e0c7919c588c9b82 Mon Sep 17 00:00:00 2001
 From: "David C. Manuelda" <StormByte@gmail.com>
-Date: Thu, 19 Sep 2024 19:59:09 +0200
-Subject: [PATCH 3/5] third_party/perfetto: Adds a missing noexcept
+Date: Thu, 19 Sep 2024 20:27:42 +0200
+Subject: [PATCH 2/6] third_party/perfetto: Adds a missing noexcept
  specification
 
+Signed-off-by: David C. Manuelda <StormByte@gmail.com>
 ---
  .../third_party/crashpad/crashpad/util/misc/no_cfi_icall.h  | 6 +++---
  1 file changed, 3 insertions(+), 3 deletions(-)

@@ -1,0 +1,27 @@
+From 79cf6b2fe4202ab1f92d4937dc62f09f1db94f11 Mon Sep 17 00:00:00 2001
+From: "David C. Manuelda" <StormByte@gmail.com>
+Date: Thu, 19 Sep 2024 20:32:22 +0200
+Subject: [PATCH 4/6] third_party/pdfium: Fix deprecated __has_trivial_xxx in
+ favor of their non deprecated ones
+
+Signed-off-by: David C. Manuelda <StormByte@gmail.com>
+---
+ .../third_party/pdfium/third_party/base/template_util.h         | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/3rdparty/chromium/third_party/pdfium/third_party/base/template_util.h b/src/3rdparty/chromium/third_party/pdfium/third_party/base/template_util.h
+index b5e1a1e37..f024156b6 100644
+--- a/src/3rdparty/chromium/third_party/pdfium/third_party/base/template_util.h
++++ b/src/3rdparty/chromium/third_party/pdfium/third_party/base/template_util.h
+@@ -120,7 +120,7 @@ struct is_trivially_copyable {
+   static constexpr bool value = __is_trivially_copyable(T);
+ #else
+   static constexpr bool value =
+-      __has_trivial_copy(T) && __has_trivial_destructor(T);
++      __is_trivially_copyable(T) && __is_trivially_destructible(T);
+ #endif
+ };
+ #else
+-- 
+2.46.0
+
