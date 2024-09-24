@@ -1,0 +1,17 @@
+--- a/src/linguist/lupdate/clangtoolastreader.cpp	2024-09-24 14:18:25.431883542 +0200
++++ b/src/linguist/lupdate/clangtoolastreader.cpp	2024-09-24 14:19:45.024444916 +0200
+@@ -782,8 +782,14 @@
+     if (!fullLocation.isValid() || !fullLocation.getFileEntry())
+         return true;
+ 
++#if (LUPDATE_CLANG_VERSION >= LUPDATE_CLANG_VERSION_CHECK(18,0,0))
++    auto fileEntry = fullLocation.getFileEntryRef();
++    if (fileEntry && !LupdatePrivate::isFileSignificant(fileEntry->getName().str()))
++        return true;
++#else
+     if (!LupdatePrivate::isFileSignificant(fullLocation.getFileEntry()->getName().str()))
+         return true;
++#endif
+ 
+     qCDebug(lcClang) << "NamedDecl Name:   " << QString::fromStdString(namedDeclaration->getQualifiedNameAsString());
+     qCDebug(lcClang) << "NamedDecl source: " << QString::fromStdString(namedDeclaration->getSourceRange().printToString(
