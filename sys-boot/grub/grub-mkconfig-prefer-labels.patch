@@ -1,0 +1,34 @@
+--- a/util/grub.d/10_linux.in	2024-10-07 17:13:08.514493494 +0200
++++ b/util/grub.d/10_linux.in	2024-10-07 17:16:50.301224704 +0200
+@@ -51,7 +51,9 @@
+ 
+ # btrfs may reside on multiple devices. We cannot pass them as value of root= parameter
+ # and mounting btrfs requires user space scanning, so force UUID in this case.
+-if ( [ "x${GRUB_DEVICE_UUID}" = "x" ] && [ "x${GRUB_DEVICE_PARTUUID}" = "x" ] ) \
++if [ "x${GRUB_PREFER_LINUX_LABEL}" = "xtrue" ] && [ ! -z $(blkid -o value -s LABEL ${GRUB_DEVICE}) ]; then
++  LINUX_ROOT_DEVICE=LABEL=$(blkid -o value -s LABEL ${GRUB_DEVICE}) # This can be improved
++elif ( [ "x${GRUB_DEVICE_UUID}" = "x" ] && [ "x${GRUB_DEVICE_PARTUUID}" = "x" ] ) \
+     || ( [ "x${GRUB_DISABLE_LINUX_UUID}" = "xtrue" ] \
+ 	&& [ "x${GRUB_DISABLE_LINUX_PARTUUID}" = "xtrue" ] ) \
+     || ( ! test -e "/dev/disk/by-uuid/${GRUB_DEVICE_UUID}" \
+--- a/util/grub-mkconfig.in	2024-10-07 17:17:48.802681354 +0200
++++ b/util/grub-mkconfig.in	2024-10-07 17:19:07.989299461 +0200
+@@ -161,7 +161,9 @@
+   . ${sysconfdir}/default/grub
+ fi
+ 
+-if [ "x${GRUB_DISABLE_UUID}" = "xtrue" ]; then
++if [ "x${GRUB_PREFER_LINUX_LABEL}" = "xtrue" ]; then
++    GRUB_PREFER_LINUX_LABEL="true"
++elif [ "x${GRUB_DISABLE_UUID}" = "xtrue" ]; then
+   if [ -z "${GRUB_DISABLE_LINUX_UUID}" ]; then
+     GRUB_DISABLE_LINUX_UUID="true"
+   fi
+@@ -242,6 +244,7 @@
+   GRUB_TERMINAL_OUTPUT \
+   GRUB_SERIAL_COMMAND \
+   GRUB_DISABLE_UUID \
++  GRUB_PREFER_LINUX_LABEL \
+   GRUB_DISABLE_LINUX_UUID \
+   GRUB_DISABLE_LINUX_PARTUUID \
+   GRUB_DISABLE_RECOVERY \
