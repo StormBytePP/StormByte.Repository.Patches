@@ -1,4 +1,4 @@
-From 7eeef13b492ec3d91c3b6c49653fab95a27f4792 Mon Sep 17 00:00:00 2001
+From 9a7779989f803b0df8054f77d99dbb75ecd3520f Mon Sep 17 00:00:00 2001
 From: "David C. Manuelda" <StormByte@gmail.com>
 Date: Tue, 8 Oct 2024 13:04:54 +0200
 Subject: [PATCH] Introduce grub-mkconfig filesystem label support:
@@ -9,6 +9,8 @@ this feature, UUIDs and PARTUUIDs needs to be disabled (with
 GRUB_DISABLE_LINUX_UUID and GRUB_DISABLE_LINUX_PARTUUID set to true)
 and the newly introduced variable GRUB_DISABLE_LINUX_LABEL set to false.
 
+GRUB_DEVICE_LABEL is also added to mkconfig can look for them.
+
 To maintain compatibility with older kernels and existing configs
 the default value for GRUB_DISABLE_LINUX_LABEL is true so unless
 this value is changed the current functionality is not affected.
@@ -16,9 +18,9 @@ this value is changed the current functionality is not affected.
 Signed-off-by: David C. Manuelda <StormByte@gmail.com>
 ---
  docs/grub.texi          |  7 +++++++
- util/grub-mkconfig.in   |  2 ++
+ util/grub-mkconfig.in   |  3 +++
  util/grub.d/10_linux.in | 29 +++++++++++++++++++++--------
- 3 files changed, 30 insertions(+), 8 deletions(-)
+ 3 files changed, 31 insertions(+), 8 deletions(-)
 
 diff --git a/docs/grub.texi b/docs/grub.texi
 index 2ea6c56d1..4ecb708ae 100644
@@ -39,10 +41,18 @@ index 2ea6c56d1..4ecb708ae 100644
  If this option is set to @samp{true}, disable the generation of recovery
  mode menu entries.
 diff --git a/util/grub-mkconfig.in b/util/grub-mkconfig.in
-index 32c480dae..ed670ffcc 100644
+index 32c480dae..8f6b866af 100644
 --- a/util/grub-mkconfig.in
 +++ b/util/grub-mkconfig.in
-@@ -202,6 +202,7 @@ if [ "x${GRUB_ACTUAL_DEFAULT}" = "xsaved" ] ; then GRUB_ACTUAL_DEFAULT="`"${grub
+@@ -135,6 +135,7 @@ fi
+ GRUB_DEVICE="`${grub_probe} --target=device /`"
+ GRUB_DEVICE_UUID="`${grub_probe} --device ${GRUB_DEVICE} --target=fs_uuid 2> /dev/null`" || true
+ GRUB_DEVICE_PARTUUID="`${grub_probe} --device ${GRUB_DEVICE} --target=partuuid 2> /dev/null`" || true
++GRUB_DEVICE_LABEL="`${grub_probe} --device ${GRUB_DEVICE} --target=fslabel 2> /dev/null`" || true
+ 
+ # Device containing our /boot partition.  Usually the same as GRUB_DEVICE.
+ GRUB_DEVICE_BOOT="`${grub_probe} --target=device /boot`"
+@@ -202,6 +203,7 @@ if [ "x${GRUB_ACTUAL_DEFAULT}" = "xsaved" ] ; then GRUB_ACTUAL_DEFAULT="`"${grub
  export GRUB_DEVICE \
    GRUB_DEVICE_UUID \
    GRUB_DEVICE_PARTUUID \
@@ -50,7 +60,7 @@ index 32c480dae..ed670ffcc 100644
    GRUB_DEVICE_BOOT \
    GRUB_DEVICE_BOOT_UUID \
    GRUB_DISABLE_OS_PROBER \
-@@ -244,6 +245,7 @@ export GRUB_DEFAULT \
+@@ -244,6 +246,7 @@ export GRUB_DEFAULT \
    GRUB_DISABLE_UUID \
    GRUB_DISABLE_LINUX_UUID \
    GRUB_DISABLE_LINUX_PARTUUID \
