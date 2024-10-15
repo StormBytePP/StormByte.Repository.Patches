@@ -1,0 +1,26 @@
+From 7e0a5b5d7922874b7dea5937f71136ff538e0a4c Mon Sep 17 00:00:00 2001
+From: "David C. Manuelda" <StormByte@gmail.com>
+Date: Tue, 15 Oct 2024 15:56:51 +0200
+Subject: [PATCH] Fix atomic builtins test that currently fails for
+ llvm+compiler_rt only systems (no gcc) where atomic are builtin but
+ __atomic_load_8 is not implemented
+
+Signed-off-by: David C. Manuelda <StormByte@gmail.com>
+---
+ CMakeLists.txt | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index cd620901525515..2b629395e60086 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -448,7 +448,8 @@ int main() {
+ 
+ check_cxx_source_compiles("
+ int main() {
+-        __atomic_load_8(nullptr, 0);
++        int test;
++        __atomic_load_n(&test, 0);
+         return 0;
+ }
+ " HAVE_BUILTIN_ATOMICS)
