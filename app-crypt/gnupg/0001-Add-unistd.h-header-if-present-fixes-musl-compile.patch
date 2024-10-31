@@ -1,0 +1,27 @@
+From e1c51a50cdeae0fb0e53261b8292090a93703548 Mon Sep 17 00:00:00 2001
+From: "David C. Manuelda" <StormByte@gmail.com>
+Date: Thu, 31 Oct 2024 11:42:37 +0100
+Subject: [PATCH] Add unistd.h header if present (fixes musl compile)
+
+Signed-off-by: David C. Manuelda <StormByte@gmail.com>
+---
+ scd/app.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/scd/app.c b/scd/app.c
+index 21230bd..50df40b 100644
+--- a/scd/app.c
++++ b/scd/app.c
+@@ -23,6 +23,9 @@
+ #include <stdlib.h>
+ #include <string.h>
+ #include <npth.h>
++#if HAVE_UNISTD_H
++#include <unistd.h>
++#endif
+ 
+ #ifndef HAVE_W32_SYSTEM
+ #include <fcntl.h>		/* F_SETFD F_GETFL F_SETFL O_NONBLOCK fcntl(2) */
+-- 
+2.47.0
+
