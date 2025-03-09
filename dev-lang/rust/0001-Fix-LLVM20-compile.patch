@@ -1,0 +1,30 @@
+From d83928afd9cff9a1e0c9215dcc75b0e48c5ea1e0 Mon Sep 17 00:00:00 2001
+From: "David C. Manuelda" <StormByte@gmail.com>
+Date: Sun, 9 Mar 2025 17:51:50 +0100
+Subject: [PATCH] Fix LLVM20 compile
+
+---
+ compiler/rustc_llvm/llvm-wrapper/PassWrapper.cpp | 6 +-----
+ 1 file changed, 1 insertion(+), 5 deletions(-)
+
+diff --git a/compiler/rustc_llvm/llvm-wrapper/PassWrapper.cpp b/compiler/rustc_llvm/llvm-wrapper/PassWrapper.cpp
+index de14c6d18..c38a3e4d7 100644
+--- a/compiler/rustc_llvm/llvm-wrapper/PassWrapper.cpp
++++ b/compiler/rustc_llvm/llvm-wrapper/PassWrapper.cpp
+@@ -1396,12 +1396,8 @@ extern "C" bool LLVMRustPrepareThinLTORename(const LLVMRustThinLTOData *Data,
+   TargetMachine &Target = *unwrap(TM);
+ 
+   bool ClearDSOLocal = clearDSOLocalOnDeclarations(Mod, Target);
+-  bool error = renameModuleForThinLTO(Mod, Data->Index, ClearDSOLocal);
++  renameModuleForThinLTO(Mod, Data->Index, ClearDSOLocal);
+ 
+-  if (error) {
+-    LLVMRustSetLastError("renameModuleForThinLTO failed");
+-    return false;
+-  }
+   return true;
+ }
+ 
+-- 
+2.47.1
+
