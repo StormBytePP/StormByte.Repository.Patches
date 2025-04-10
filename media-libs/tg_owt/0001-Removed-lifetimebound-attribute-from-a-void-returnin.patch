@@ -1,0 +1,27 @@
+From d86e524e823e1a3dd8226d474c1fc9b70c667c63 Mon Sep 17 00:00:00 2001
+From: "David C. Manuelda" <StormByte@gmail.com>
+Date: Thu, 10 Apr 2025 16:36:14 +0200
+Subject: [PATCH] Removed lifetimebound attribute from a void returning
+ function
+
+Signed-off-by: David C. Manuelda <StormByte@gmail.com>
+---
+ src/api/candidate.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/api/candidate.h b/src/api/candidate.h
+index 0aa75aa..715761a 100644
+--- a/src/api/candidate.h
++++ b/src/api/candidate.h
+@@ -105,7 +105,7 @@ class RTC_EXPORT Candidate {
+   // cricket::LOCAL_PORT_TYPE). The type should really be an enum rather than a
+   // string, but until we make that change the lifetime attribute helps us lock
+   // things down. See also the `Port` class.
+-  void set_type(absl::string_view type ABSL_ATTRIBUTE_LIFETIME_BOUND) {
++  void set_type(absl::string_view type) {
+     Assign(type_, type);
+   }
+ 
+-- 
+2.49.0
+
