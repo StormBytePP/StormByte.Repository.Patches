@@ -7,15 +7,15 @@ As is done in `core` since https://github.com/rust-lang/rust/pull/134286
 
 cc https://github.com/rust-lang/rust/issues/138054
 ---
- crates/core_simd/src/lib.rs              |  6 +++++-
- crates/core_simd/src/masks/bitmask.rs    | 22 +++++++++++-----------
- crates/core_simd/src/masks/full_masks.rs | 18 +++++++++---------
+ library/portable-simd/crates/core_simd/src/lib.rs              |  6 +++++-
+ library/portable-simd/crates/core_simd/src/masks/bitmask.rs    | 22 +++++++++++-----------
+ library/portable-simd/crates/core_simd/src/masks/full_masks.rs | 18 +++++++++---------
  3 files changed, 25 insertions(+), 21 deletions(-)
 
-diff --git a/crates/core_simd/src/lib.rs b/crates/core_simd/src/lib.rs
+diff --git a/library/portable-simd/crates/core_simd/src/lib.rs b/library/portable-simd/crates/core_simd/src/lib.rs
 index 7f57847c9c234..717b882b64ba1 100644
---- a/crates/core_simd/src/lib.rs
-+++ b/crates/core_simd/src/lib.rs
+--- a/library/portable-simd/crates/core_simd/src/lib.rs
++++ b/library/portable-simd/crates/core_simd/src/lib.rs
 @@ -35,7 +35,11 @@
      feature(stdarch_x86_avx512)
  )]
@@ -29,10 +29,10 @@ index 7f57847c9c234..717b882b64ba1 100644
  #![doc(test(attr(deny(warnings))))]
  #![allow(internal_features)]
  #![unstable(feature = "portable_simd", issue = "86656")]
-diff --git a/crates/core_simd/src/masks/bitmask.rs b/crates/core_simd/src/masks/bitmask.rs
+diff --git a/library/portable-simd/crates/core_simd/src/masks/bitmask.rs b/library/portable-simd/crates/core_simd/src/masks/bitmask.rs
 index db4312d5bf88a..8221d8f17e90e 100644
---- a/crates/core_simd/src/masks/bitmask.rs
-+++ b/crates/core_simd/src/masks/bitmask.rs
+--- a/library/portable-simd/crates/core_simd/src/masks/bitmask.rs
++++ b/library/portable-simd/crates/core_simd/src/masks/bitmask.rs
 @@ -5,7 +5,7 @@ use core::marker::PhantomData;
  
  /// A mask where each lane is represented by a single bit.
@@ -123,10 +123,10 @@ index db4312d5bf88a..8221d8f17e90e 100644
          self == Self::splat(true)
      }
  }
-diff --git a/crates/core_simd/src/masks/full_masks.rs b/crates/core_simd/src/masks/full_masks.rs
+diff --git a/library/portable-simd/crates/core_simd/src/masks/full_masks.rs b/library/portable-simd/crates/core_simd/src/masks/full_masks.rs
 index ae55cf1f8fa87..a693ea90b9cb8 100644
---- a/crates/core_simd/src/masks/full_masks.rs
-+++ b/crates/core_simd/src/masks/full_masks.rs
+--- a/library/portable-simd/crates/core_simd/src/masks/full_masks.rs
++++ b/library/portable-simd/crates/core_simd/src/masks/full_masks.rs
 @@ -3,7 +3,7 @@
  use crate::simd::{LaneCount, MaskElement, Simd, SupportedLaneCount};
  
