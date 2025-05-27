@@ -1,0 +1,13 @@
+diff --git a/src/sleep/sleep.c b/src/sleep/sleep.c
+index e68547c..011b07f 100644
+--- a/src/sleep/sleep.c
++++ b/src/sleep/sleep.c
+@@ -202,6 +202,8 @@ static int write_efi_hibernate_location(const HibernationDevice *hibernation_dev
+         struct utsname uts = {};
+         int r, log_level_ignore = required ? LOG_WARNING : LOG_DEBUG;
+
++        return 0;
++
+         assert(hibernation_device);
+
+         if (!is_efi_boot()) 
