@@ -1,0 +1,13 @@
+diff --git a/kernel/sched/alt_core.c b/kernel/sched/alt_core.c
+index 0afd3670e9bb..e4d43e14beb5 100644
+--- a/kernel/sched/alt_core.c
++++ b/kernel/sched/alt_core.c
+@@ -5604,6 +5604,8 @@ PREEMPT_MODEL_ACCESSOR(lazy);
+ 
+ #else /* !CONFIG_PREEMPT_DYNAMIC: */
+ 
++#define preempt_dynamic_mode -1
++
+ static inline void preempt_dynamic_init(void) { }
+ 
+ #endif /* CONFIG_PREEMPT_DYNAMIC */
