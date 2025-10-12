@@ -1,0 +1,11 @@
+--- a/src/qml/jit/qv4assemblercommon_p.h	2025-10-12 17:19:13.062929916 +0200
++++ b/src/qml/jit/qv4assemblercommon_p.h	2025-10-12 17:19:28.551385608 +0200
+@@ -73,7 +73,7 @@
+ public:
+     static constexpr int NativeStackAlignment = 16;
+ 
+-    static const RegisterID NoRegister = RegisterID(-1);
++    static const RegisterID NoRegister = RegisterID(0);
+ 
+     static const RegisterID ReturnValueRegister   = RegisterID::eax;
+     static const RegisterID ReturnValueRegisterValue = ReturnValueRegister;
