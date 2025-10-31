@@ -1,0 +1,105 @@
+From b8d9d8a1068d171a8a61ee52e4e8b9cb1ea72a19 Mon Sep 17 00:00:00 2001
+From: "David C. Manuelda" <StormByte@gmail.com>
+Date: Fri, 31 Oct 2025 13:30:11 +0100
+Subject: [PATCH] Fix clang21 compile
+
+---
+ Source/JavaScriptCore/Scripts/postprocess-asm                   | 2 +-
+ Source/JavaScriptCore/Scripts/resolve-asm-file-conflicts.rb     | 2 +-
+ Source/JavaScriptCore/b3/air/opcode_generator.rb                | 2 +-
+ Source/JavaScriptCore/offlineasm/asm.rb                         | 2 +-
+ Source/JavaScriptCore/offlineasm/generate_offset_extractor.rb   | 2 +-
+ Source/JavaScriptCore/offlineasm/generate_settings_extractor.rb | 2 +-
+ Source/WebCore/dom/ContainerNode.h                              | 2 +-
+ Source/WebCore/dom/ContextDestructionObserver.h                 | 2 +-
+ 8 files changed, 8 insertions(+), 8 deletions(-)
+
+diff --git a/Source/JavaScriptCore/Scripts/postprocess-asm b/Source/JavaScriptCore/Scripts/postprocess-asm
+index c2612a42..5eb03974 100755
+--- a/Source/JavaScriptCore/Scripts/postprocess-asm
++++ b/Source/JavaScriptCore/Scripts/postprocess-asm
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env ruby
++#!/usr/bin/ruby33
+ 
+ # Copyright (C) 2020 Igalia S. L.
+ #
+diff --git a/Source/JavaScriptCore/Scripts/resolve-asm-file-conflicts.rb b/Source/JavaScriptCore/Scripts/resolve-asm-file-conflicts.rb
+index fe315c28..c0af270a 100755
+--- a/Source/JavaScriptCore/Scripts/resolve-asm-file-conflicts.rb
++++ b/Source/JavaScriptCore/Scripts/resolve-asm-file-conflicts.rb
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env ruby
++#!/usr/bin/ruby33
+ 
+ # Copyright (C) 2020 Igalia S. L.
+ #
+diff --git a/Source/JavaScriptCore/b3/air/opcode_generator.rb b/Source/JavaScriptCore/b3/air/opcode_generator.rb
+index 3f8e49d0..5f093fbd 100644
+--- a/Source/JavaScriptCore/b3/air/opcode_generator.rb
++++ b/Source/JavaScriptCore/b3/air/opcode_generator.rb
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env ruby
++#!/usr/bin/ruby33
+ 
+ # Copyright (C) 2015-2017 Apple Inc. All rights reserved.
+ #
+diff --git a/Source/JavaScriptCore/offlineasm/asm.rb b/Source/JavaScriptCore/offlineasm/asm.rb
+index 5d04f11f..2333d005 100644
+--- a/Source/JavaScriptCore/offlineasm/asm.rb
++++ b/Source/JavaScriptCore/offlineasm/asm.rb
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env ruby
++#!/usr/bin/ruby33
+ 
+ # Copyright (C) 2011-2022 Apple Inc. All rights reserved.
+ #
+diff --git a/Source/JavaScriptCore/offlineasm/generate_offset_extractor.rb b/Source/JavaScriptCore/offlineasm/generate_offset_extractor.rb
+index e3acbf6d..d467f9dd 100644
+--- a/Source/JavaScriptCore/offlineasm/generate_offset_extractor.rb
++++ b/Source/JavaScriptCore/offlineasm/generate_offset_extractor.rb
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env ruby
++#!/usr/bin/ruby33
+ 
+ # Copyright (C) 2011-2023 Apple Inc. All rights reserved.
+ #
+diff --git a/Source/JavaScriptCore/offlineasm/generate_settings_extractor.rb b/Source/JavaScriptCore/offlineasm/generate_settings_extractor.rb
+index a7c203cd..cbf2ad4b 100644
+--- a/Source/JavaScriptCore/offlineasm/generate_settings_extractor.rb
++++ b/Source/JavaScriptCore/offlineasm/generate_settings_extractor.rb
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env ruby
++#!/usr/bin/ruby33
+ 
+ # Copyright (C) 2011-2023 Apple Inc. All rights reserved.
+ #
+diff --git a/Source/WebCore/dom/ContainerNode.h b/Source/WebCore/dom/ContainerNode.h
+index aed85158..53301bb3 100644
+--- a/Source/WebCore/dom/ContainerNode.h
++++ b/Source/WebCore/dom/ContainerNode.h
+@@ -121,7 +121,7 @@ public:
+ 
+     void disconnectDescendantFrames();
+ 
+-    inline RenderElement* renderer() const; // Defined in ContainerNodeInlines.h.
++    RenderElement* renderer() const; // Defined in ContainerNodeInlines.h.
+     inline CheckedPtr<RenderElement> checkedRenderer() const; // Defined in ContainerNodeInlines.h.
+ 
+     // Return a bounding box in absolute coordinates enclosing this node and all its descendants.
+diff --git a/Source/WebCore/dom/ContextDestructionObserver.h b/Source/WebCore/dom/ContextDestructionObserver.h
+index 64898656..cf545acd 100644
+--- a/Source/WebCore/dom/ContextDestructionObserver.h
++++ b/Source/WebCore/dom/ContextDestructionObserver.h
+@@ -37,7 +37,7 @@ class ContextDestructionObserver {
+ public:
+     WEBCORE_EXPORT virtual void contextDestroyed();
+ 
+-    inline ScriptExecutionContext* scriptExecutionContext() const; // Defined in ContextDestructionObserverInlines.h.
++    ScriptExecutionContext* scriptExecutionContext() const; // Defined in ContextDestructionObserverInlines.h.
+     inline RefPtr<ScriptExecutionContext> protectedScriptExecutionContext() const; // Defined in ContextDestructionObserverInlines.h.
+ 
+ protected:
+-- 
+2.51.2
+
