@@ -1,0 +1,25 @@
+From 2a2a07cbd8dd5441e2ae1cd0c02ae316a1d9ebe4 Mon Sep 17 00:00:00 2001
+From: "David C. Manuelda" <StormByte@gmail.com>
+Date: Sun, 11 Jan 2026 18:06:37 +0100
+Subject: [PATCH] Removed invalid static keyword
+
+---
+ lib/keystore.cc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/lib/keystore.cc b/lib/keystore.cc
+index 57a8c71..8e46549 100644
+--- a/lib/keystore.cc
++++ b/lib/keystore.cc
+@@ -126,7 +126,7 @@ static rpmRC delete_file_store(std::string path)
+ }
+ 
+ /* Wrapper for private delete_key() methods that falls back to short keyid */
+-static rpmRC rpm::delete_key_compat(auto keystore, rpmtxn txn, rpmPubkey key, auto skip)
++rpmRC rpm::delete_key_compat(auto keystore, rpmtxn txn, rpmPubkey key, auto skip)
+ {
+     rpmRC rc = RPMRC_NOTFOUND;
+     string fp = rpmPubkeyFingerprintAsHex(key);
+-- 
+2.52.0
+
