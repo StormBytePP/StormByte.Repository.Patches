@@ -1,0 +1,25 @@
+From a6a43a40c427a508d8fc28d013181fbacdcabb4a Mon Sep 17 00:00:00 2001
+From: "David C. Manuelda" <StormByte@gmail.com>
+Date: Sun, 11 Jan 2026 11:55:49 +0100
+Subject: [PATCH] Add missing include string required for clang
+
+---
+ src/managers/animation/DesktopAnimationManager.hpp | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/src/managers/animation/DesktopAnimationManager.hpp b/src/managers/animation/DesktopAnimationManager.hpp
+index 623fc5e..0e6112b 100644
+--- a/src/managers/animation/DesktopAnimationManager.hpp
++++ b/src/managers/animation/DesktopAnimationManager.hpp
+@@ -3,6 +3,8 @@
+ #include "../../helpers/memory/Memory.hpp"
+ #include "../../desktop/DesktopTypes.hpp"
+ 
++#include <string>
++
+ class CDesktopAnimationManager {
+   public:
+     enum eAnimationType : uint8_t {
+-- 
+2.52.0
+
