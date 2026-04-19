@@ -1,0 +1,58 @@
+From 91e75a4b2a16e6bdcc2c566ff103121d05976073 Mon Sep 17 00:00:00 2001
+From: "David C. Manuelda" <StormByte@gmail.com>
+Date: Sun, 19 Apr 2026 16:35:05 +0200
+Subject: [PATCH] Fix compiler errors for clang22
+
+---
+ agent/mibgroup/mibII/mta_sendmail.c   | 12 ++++++------
+ include/net-snmp/net-snmp-config.h.in |  4 ++++
+ 2 files changed, 10 insertions(+), 6 deletions(-)
+
+diff --git a/agent/mibgroup/mibII/mta_sendmail.c b/agent/mibgroup/mibII/mta_sendmail.c
+index 3d63d15..dd46768 100644
+--- a/agent/mibgroup/mibII/mta_sendmail.c
++++ b/agent/mibgroup/mibII/mta_sendmail.c
+@@ -1182,9 +1182,9 @@ var_mtaEntry(struct variable *vp,
+ 
+ 
+     static long     long_ret;
+-    auto int        i;
+-    auto int        result;
+-    auto time_t     current_time;
++    int             i;
++    int             result;
++    time_t          current_time;
+     int             global_count = 0;
+     int             global_size = 0;
+ 
+@@ -1332,9 +1332,9 @@ var_mtaGroupEntry(struct variable *vp,
+                   int exact, size_t * var_len, WriteMethod ** write_method)
+ {
+     static long     long_ret;
+-    auto long       row;
+-    auto int        result;
+-    auto time_t     current_time;
++    long            row;
++    int             result;
++    time_t          current_time;
+ 
+ 
+     if (exact) {
+diff --git a/include/net-snmp/net-snmp-config.h.in b/include/net-snmp/net-snmp-config.h.in
+index 13d942a..01e5a56 100644
+--- a/include/net-snmp/net-snmp-config.h.in
++++ b/include/net-snmp/net-snmp-config.h.in
+@@ -1873,6 +1873,10 @@
+ #ifndef _ALL_SOURCE
+ # undef _ALL_SOURCE
+ #endif
++/* Enable extensions on Cosmopolitan Libc. */
++#ifndef _COSMO_SOURCE
++# undef _COSMO_SOURCE
++#endif
+ /* Enable general extensions on macOS.  */
+ #ifndef _DARWIN_C_SOURCE
+ # undef _DARWIN_C_SOURCE
+-- 
+2.53.0
+
