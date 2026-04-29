@@ -1,0 +1,14 @@
+--- a/mysys/crc32/crc32c_x86.cc	2026-04-29 02:19:54.785524629 +0200
++++ b/mysys/crc32/crc32c_x86.cc	2026-04-29 02:21:15.661480665 +0200
+@@ -28,8 +28,9 @@
+ # elif __GNUC__ >= 15
+ #  define TARGET "pclmul,avx10.1,vpclmulqdq"
+ #  define USE_VPCLMULQDQ __attribute__((target(TARGET)))
+-# elif __GNUC__ >= 14 || (defined __clang_major__ && __clang_major__ >= 18)
+-#  define TARGET "pclmul,evex512,avx512f,avx512dq,avx512bw,avx512vl,vpclmulqdq"
++# elif __GNUC__ >= 14
++/* Clang >=18 removed here to avoid enabling AVX-512 on CPUs that don't support it */
++#  define TARGET "pclmul,avx512f,avx512dq,avx512bw,avx512vl,vpclmulqdq"
+ #  define USE_VPCLMULQDQ __attribute__((target(TARGET)))
+ # elif __GNUC__ >= 11 || (defined __clang_major__ && __clang_major__ >= 9)
+ /* clang 8 does not support _xgetbv(), which we also need */
