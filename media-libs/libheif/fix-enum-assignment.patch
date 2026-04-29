@@ -1,0 +1,11 @@
+--- a/libheif/plugins/encoder_svt.cc	2026-04-29 05:34:56.200824361 +0200
++++ b/libheif/plugins/encoder_svt.cc	2026-04-29 05:35:30.963531263 +0200
+@@ -847,7 +847,7 @@
+         //svt_config.pred_structure = 1; // LOW_DELAY
+         break;
+       case heif_sequence_gop_structure_unrestricted:
+-        svt_config.pred_structure = 2; // RANDOM_ACCESS
++        svt_config.pred_structure = PredStructure::RANDOM_ACCESS; // RANDOM_ACCESS
+         break;
+     }
+ #else
