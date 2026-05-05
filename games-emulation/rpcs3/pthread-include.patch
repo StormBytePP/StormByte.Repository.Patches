@@ -1,0 +1,13 @@
+--- a/rpcs3/util/atomic.cpp	2026-05-05 23:20:28.359061659 +0200
++++ b/rpcs3/util/atomic.cpp	2026-05-05 23:21:40.343327297 +0200
+@@ -11,6 +11,10 @@
+ #include "emmintrin.h"
+ #include "immintrin.h"
+ 
++#if !defined(_WIN32)
++#include <pthread.h>
++#endif
++
+ namespace utils
+ {
+ 	u128 __vectorcall atomic_load16(const void* ptr)
