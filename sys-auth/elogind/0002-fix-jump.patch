@@ -1,0 +1,21 @@
+diff --git a/src/login/logind-session.c b/src/login/logind-session.c
+index dd552a6f5a28..d4d3d9f63f34 100644
+--- a/src/login/logind-session.c
++++ b/src/login/logind-session.c
+@@ -1853,7 +1853,7 @@ int session_kill(Session *s, KillWhom whom, int signo, sd_bus_error *error) {
+ 
+         switch (whom) {
+ 
+-        case KILL_ALL:
++        case KILL_ALL: {
+ #if 0 /// Without direct cgroup support, elogind can not kill sessions
+                 if (!SESSION_CLASS_WANTS_SCOPE(s->class))
+                         return sd_bus_error_setf(error, SD_BUS_ERROR_NOT_SUPPORTED,
+@@ -1877,6 +1877,7 @@ int session_kill(Session *s, KillWhom whom, int signo, sd_bus_error *error) {
+                                                   NULL);
+                 return r;
+ #endif // 0
++        }
+ 
+         case KILL_LEADER:
+                 return pidref_kill(&s->leader, signo);
