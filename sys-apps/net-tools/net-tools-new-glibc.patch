@@ -1,0 +1,12 @@
+--- a/lib/rose.c	2026-06-20 18:43:35.694342276 +0200
++++ b/lib/rose.c	2026-06-20 18:44:29.279215246 +0200
+@@ -37,8 +37,7 @@
+ #include "util.h"
+ 
+ #ifndef _NETROSE_ROSE_H
+-#include <linux/ax25.h>
+-#include <linux/rose.h>
++#include <netrose/rose.h>
+ /* this will check for the broken #define PF_ROSE AF_ROSE define in some older kernel headers */
+ #undef AF_ROSE
+ #if PF_ROSE == AF_ROSE
