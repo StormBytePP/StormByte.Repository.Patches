@@ -1,0 +1,13 @@
+--- a/netcat.c	2026-08-18 19:39:40.680659912 +0200
++++ b/netcat.c	2026-08-18 19:40:25.938824808 +0200
+@@ -2095,6 +2095,10 @@
+ 	}
+ }
+ 
++#ifndef IPTOS_DSCP_VA
++#define IPTOS_DSCP_VA 0xb0
++#endif
++
+ int
+ process_tos_opt(char *s, int *val)
+ {
