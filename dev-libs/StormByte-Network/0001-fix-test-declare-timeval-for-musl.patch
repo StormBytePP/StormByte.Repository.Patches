@@ -1,0 +1,44 @@
+From c4f8e6c9a73153336e54ee58ace8b23f09de9291 Mon Sep 17 00:00:00 2001
+From: "David C. Manuelda" <StormByte@gmail.com>
+Date: Thu, 15 Oct 2026 15:05:42 +0000
+Subject: [PATCH] fix(test): declare timeval for musl
+
+musl does not pull timeval in through sys/socket.h. The handshake
+fixture needs sys/time.h to set SO_RCVTIMEO.
+
+Record the correction under Unreleased.
+---
+ CHANGELOG.md            | 4 ++++
+ test/handshake_test.cxx | 1 +
+ 2 files changed, 5 insertions(+)
+
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 1c3f0a7..8691017 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -16,6 +16,10 @@ IPv4 and IPv6, framed request/response, POSIX and Winsock stay behind the public
+ 
+ ## [Unreleased]
+ 
++### Fixed
++
++- `HandshakeTest` includes `<sys/time.h>` before using `timeval`. musl does not declare that type through `<sys/socket.h>`.
++
+ [Unreleased]: https://github.com/StormByte-Suite/StormByte-Network/compare/2.0.1...HEAD
+ 
+ ## [2.0.1] - 2026-10-13
+diff --git a/test/handshake_test.cxx b/test/handshake_test.cxx
+index a0f432d..2df3028 100644
+--- a/test/handshake_test.cxx
++++ b/test/handshake_test.cxx
+@@ -66,6 +66,7 @@
+ #else
+ #include <arpa/inet.h>
+ #include <sys/socket.h>
++#include <sys/time.h>
+ #include <unistd.h>
+ #endif
+ 
+-- 
+2.56.0
+

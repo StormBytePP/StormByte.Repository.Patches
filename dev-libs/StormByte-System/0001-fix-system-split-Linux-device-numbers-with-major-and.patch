@@ -1,0 +1,47 @@
+From f6f4382b1d42374228effa42c5ad1ca913776f38 Mon Sep 17 00:00:00 2001
+From: "David C. Manuelda" <StormByte@gmail.com>
+Date: Thu, 15 Oct 2026 14:18:08 +0000
+Subject: [PATCH] fix(system): split Linux device numbers with major and minor
+
+gnu_dev_major and gnu_dev_minor are glibc names. musl exposes the
+same split only as the major and minor macros in sys/sysmacros.h,
+which this file already includes. ClassifyLinuxBlock now uses those
+macros so Device compiles on musl and still links on glibc.
+
+Record the correction under Unreleased.
+---
+ CHANGELOG.md                           | 4 ++++
+ lib/public/StormByte/system/device.cxx | 2 +-
+ 2 files changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index f007572..b8da42a 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -22,6 +22,10 @@ If you landed here from a release link and have not read the tree:
+ 
+ ## [Unreleased]
+ 
++### Fixed
++
++- Linux device classification splits `dev_t` with the `major` and `minor` macros from `<sys/sysmacros.h>`. `gnu_dev_major` and `gnu_dev_minor` are glibc-only, so `device.cxx` did not compile on musl.
++
+ [Unreleased]: https://github.com/StormByte-Suite/StormByte-System/compare/2.0.1...HEAD
+ 
+ ## [2.0.1] - 2026-10-13
+diff --git a/lib/public/StormByte/system/device.cxx b/lib/public/StormByte/system/device.cxx
+index a9785df..57f3491 100644
+--- a/lib/public/StormByte/system/device.cxx
++++ b/lib/public/StormByte/system/device.cxx
+@@ -271,7 +271,7 @@ namespace {
+ 
+ 	Kind ClassifyLinuxBlock(const dev_t id) {
+ 		const auto sys = std::filesystem::path("/sys/dev/block") /
+-			(std::to_string(gnu_dev_major(id)) + ":" + std::to_string(gnu_dev_minor(id)));
++			(std::to_string(major(id)) + ":" + std::to_string(minor(id)));
+ 		const auto block = BlockRoot(sys);
+ 		if (block.empty())
+ 			return Kind::HDD;
+-- 
+2.56.0
+

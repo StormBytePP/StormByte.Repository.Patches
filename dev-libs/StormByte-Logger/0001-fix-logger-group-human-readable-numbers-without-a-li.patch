@@ -1,0 +1,131 @@
+From afc4c1a7a78b10c9c969f5cc012f301bd1f03651 Mon Sep 17 00:00:00 2001
+From: "David C. Manuelda" <StormByte@gmail.com>
+Date: Thu, 15 Oct 2026 14:24:25 +0000
+Subject: [PATCH] fix(logger): group human-readable numbers without a libc
+ locale
+
+en_US.UTF-8 is the default number locale. musl does not provide its
+grouping, and the C fallback printed 1000. When a named locale has an
+empty numpunct grouping, format with en_US separators so 1000 stays
+1,000. A real locale that already groups is left unchanged, and C and
+POSIX stay ungrouped.
+
+Record the correction under Unreleased.
+---
+ CHANGELOG.md                                  |  8 ++++
+ .../StormByte/logger/human_readable.cxx       | 40 ++++++++++++++-----
+ .../StormByte/logger/human_readable.hxx       |  4 +-
+ 3 files changed, 40 insertions(+), 12 deletions(-)
+
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 1d66c2c..419bdc7 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -20,6 +20,14 @@ If you landed here from a release link and have not read the tree:
+ - What this module is, how to build it, and short examples: [README.md](https://github.com/StormBytePP/StormByte-Logger/blob/master/README.md)
+ - License: dual license LGPL-3.0-or-later or commercial, [LICENSE](https://github.com/StormBytePP/StormByte-Logger/blob/master/LICENSE)
+ 
++## [Unreleased]
++
++### Fixed
++
++- Human-readable numbers keep en_US grouping (`1,000`) when the named C++ locale has no thousands separator. musl does not group `en_US.UTF-8`, so `humanreadable_number` printed `1000` and redaction counted the shorter text.
++
++[Unreleased]: https://github.com/StormByte-Suite/StormByte-Logger/compare/2.0.1...HEAD
++
+ ## [2.0.1] - 2026-10-13
+ 
+ ### Changed
+diff --git a/lib/private/StormByte/logger/human_readable.cxx b/lib/private/StormByte/logger/human_readable.cxx
+index f272610..4d2c993 100644
+--- a/lib/private/StormByte/logger/human_readable.cxx
++++ b/lib/private/StormByte/logger/human_readable.cxx
+@@ -43,9 +43,37 @@
+ #include <cmath>
+ #include <cstdint>
+ #include <iomanip>
++#include <locale>
+ #include <sstream>
+ #include <string>
+ 
++namespace {
++	class GroupedNumberPunct final : public std::numpunct<char> {
++		protected:
++			char do_decimal_point() const override { return '.'; }
++			char do_thousands_sep() const override { return ','; }
++			std::string do_grouping() const override { return "\3"; }
++	};
++
++	bool WantsClassicLocale(const std::string& locale) noexcept {
++		return locale.empty() || locale == "C" || locale == "POSIX";
++	}
++
++	void ImbueNumberLocale(std::ostringstream& oss, const std::string& locale) {
++		std::locale applied = std::locale::classic();
++		if (!WantsClassicLocale(locale)) {
++			try {
++				applied = std::locale(locale);
++			} catch (...) {
++				applied = std::locale::classic();
++			}
++			if (std::use_facet<std::numpunct<char>>(applied).grouping().empty())
++				applied = std::locale(applied, new GroupedNumberPunct);
++		}
++		oss.imbue(applied);
++	}
++}
++
+ using namespace StormByte::Logger::Detail;
+ 
+ namespace StormByte::Logger::Detail {
+@@ -54,11 +82,7 @@ namespace StormByte::Logger::Detail {
+ 	std::string FormatNumber(const T& number, const std::string& locale) noexcept {
+ 		try {
+ 			std::ostringstream oss;
+-			try {
+-				oss.imbue(std::locale(locale));
+-			} catch (...) {
+-				oss.imbue(std::locale("C"));
+-			}
++			ImbueNumberLocale(oss, locale);
+ 
+ 			if constexpr (StormByte::Type::Integral<T>) {
+ 				oss << number;
+@@ -111,11 +135,7 @@ namespace StormByte::Logger::Detail {
+ 			}
+ 
+ 			std::ostringstream oss;
+-			try {
+-				oss.imbue(std::locale(locale));
+-			} catch (...) {
+-				oss.imbue(std::locale("C"));
+-			}
++			ImbueNumberLocale(oss, locale);
+ 
+ 			if (std::fabs(value - std::round(value)) < 0.01)
+ 				oss << static_cast<int64_t>(std::round(value));
+diff --git a/lib/private/StormByte/logger/human_readable.hxx b/lib/private/StormByte/logger/human_readable.hxx
+index 1278a35..df0e87e 100644
+--- a/lib/private/StormByte/logger/human_readable.hxx
++++ b/lib/private/StormByte/logger/human_readable.hxx
+@@ -73,7 +73,7 @@ namespace StormByte {
+ 			 * @brief Format an arithmetic value as a grouped number.
+ 			 * @tparam T Arithmetic type other than wchar_t.
+ 			 * @param number Value.
+-			 * @param locale Locale name; falls back to "C".
++			 * @param locale Locale name. A locale with no grouping uses en_US grouping.
+ 			 * @return Formatted text.
+ 			 */
+ 			template<typename T>
+@@ -84,7 +84,7 @@ namespace StormByte {
+ 			 * @brief Format an arithmetic value as an IEC byte size.
+ 			 * @tparam T Arithmetic type.
+ 			 * @param bytes Value treated as a byte count.
+-			 * @param locale Locale name; falls back to "C".
++			 * @param locale Locale name. A locale with no grouping uses en_US grouping.
+ 			 * @return Formatted text.
+ 			 */
+ 			template<typename T>
+-- 
+2.56.0
+

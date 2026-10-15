@@ -1,0 +1,268 @@
+From 894aeb231ff2178f6091a2ce404d5f80ecb22c39 Mon Sep 17 00:00:00 2001
+From: "David C. Manuelda" <StormByte@gmail.com>
+Date: Thu, 15 Oct 2026 15:02:10 +0000
+Subject: [PATCH] fix(safe): give UNIX threads an 8 MiB stack
+
+std::thread keeps the libc default. On musl that is 128 KiB, and libaom
+runs its first encoder worker on that stack. UNIX executions now start
+through pthread with an 8 MiB stack. Windows is unchanged.
+
+Record the correction under Unreleased.
+---
+ CHANGELOG.md                                 |   4 +
+ lib/private/StormByte/safe/detail/thread.cxx | 126 +++++++++++++++++++
+ lib/public/StormByte/safe/thread.hxx         |   1 +
+ test/safe/thread_test.cxx                    |  36 ++++++
+ 4 files changed, 167 insertions(+)
+
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 750a908..02d08f5 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -22,6 +22,10 @@ If you landed here from a release link and have not read the tree:
+ 
+ ## [Unreleased]
+ 
++### Fixed
++
++- `Safe::Thread` starts a UNIX execution with an 8 MiB stack. `std::thread` left the size to the libc, and musl's 128 KiB default overflowed when libaom ran its first encoder worker on that execution. Windows is unchanged. `ThreadTests` walks a megabyte of stack on UNIX; a 128 KiB stack dies there.
++
+ [Unreleased]: https://github.com/StormBytePP/StormByte/compare/2.0.0...HEAD
+ 
+ ## [2.0.0] - 2026-10-10
+diff --git a/lib/private/StormByte/safe/detail/thread.cxx b/lib/private/StormByte/safe/detail/thread.cxx
+index 9b46d86..d41a9db 100644
+--- a/lib/private/StormByte/safe/detail/thread.cxx
++++ b/lib/private/StormByte/safe/detail/thread.cxx
+@@ -37,6 +37,7 @@
+  * SPDX-License-Identifier: LGPL-3.0-or-later OR LicenseRef-StormByte-Commercial
+  */
+ 
++#include <StormByte/platform.h>
+ #include <StormByte/safe/exception.hxx>
+ #include <StormByte/safe/thread.hxx>
+ 
+@@ -47,8 +48,132 @@
+ #include <new>
+ #include <thread>
+ #include <utility>
++#ifdef UNIX
++#include <pthread.h>
++#endif
+ 
+ namespace StormByte::Safe::Detail {
++#ifdef UNIX
++	namespace {
++		constexpr std::size_t ThreadStackBytes = 8u * 1024u * 1024u;
++
++		struct Launch {
++			void (*entry)(void*);
++			void* argument;
++		};
++
++		void* RunLaunch(void* raw) {
++			auto* launch = static_cast<Launch*>(raw);
++			void (*entry)(void*) = launch->entry;
++			void* argument = launch->argument;
++			launch->~Launch();
++			Heap::Free(raw);
++			try {
++				entry(argument);
++			}
++			catch (...) {
++				std::terminate();
++			}
++			return nullptr;
++		}
++
++		template <typename Handle>
++		std::uintptr_t AsHandle(Handle handle) noexcept {
++			static_assert(sizeof(Handle) <= sizeof(std::uintptr_t));
++			std::uintptr_t value = 0;
++			std::memcpy(&value, &handle, sizeof(handle));
++			return value;
++		}
++	}
++
++	struct OwnedThread {
++		pthread_t handle;
++
++		bool joinable;
++
++		explicit OwnedThread(void (*entry)(void*), void* argument)
++		:	handle{}, joinable{false} {
++			void* raw = Heap::Allocate(sizeof(Launch));
++			auto* launch = ::new (raw) Launch{entry, argument};
++			pthread_attr_t attr;
++			if (pthread_attr_init(&attr) != 0) {
++				launch->~Launch();
++				Heap::Free(raw);
++				throw AllocationError();
++			}
++			const int sized = pthread_attr_setstacksize(&attr, ThreadStackBytes);
++			const int created = sized == 0 ? pthread_create(&handle, &attr, RunLaunch, launch) : sized;
++			pthread_attr_destroy(&attr);
++			if (created != 0) {
++				launch->~Launch();
++				Heap::Free(raw);
++				throw AllocationError();
++			}
++			joinable = true;
++		}
++	};
++
++	void* ThreadStart(void (*entry)(void*), void* argument) {
++		void* raw = Heap::Allocate(sizeof(OwnedThread));
++		try {
++			return ::new (raw) OwnedThread(entry, argument);
++		}
++		catch (...) {
++			Heap::Free(raw);
++			throw AllocationError();
++		}
++	}
++
++	void ThreadDestroy(void* thread) noexcept {
++		if (thread == nullptr)
++			return;
++		OwnedThread* owned = static_cast<OwnedThread*>(thread);
++		if (owned->joinable)
++			std::terminate();
++		owned->~OwnedThread();
++		Heap::Free(thread);
++	}
++
++	bool ThreadJoinable(void* thread) noexcept {
++		return static_cast<OwnedThread*>(thread)->joinable;
++	}
++
++	void ThreadJoin(void* thread) {
++		OwnedThread* owned = static_cast<OwnedThread*>(thread);
++		if (owned == nullptr || !owned->joinable)
++			throw Exception("Thread is not joinable");
++		if (pthread_join(owned->handle, nullptr) != 0)
++			throw Exception("Thread is not joinable");
++		owned->joinable = false;
++	}
++
++	void ThreadDetach(void* thread) {
++		OwnedThread* owned = static_cast<OwnedThread*>(thread);
++		if (owned == nullptr || !owned->joinable)
++			throw Exception("Thread is not joinable");
++		if (pthread_detach(owned->handle) != 0)
++			throw Exception("Thread is not joinable");
++		owned->joinable = false;
++	}
++
++	std::uint64_t ThreadId(void* thread) noexcept {
++		OwnedThread* owned = static_cast<OwnedThread*>(thread);
++		if (owned == nullptr || !owned->joinable)
++			return 0;
++		return static_cast<std::uint64_t>(AsHandle(owned->handle));
++	}
++
++	std::uintptr_t ThreadNative(void* thread) noexcept {
++		OwnedThread* owned = static_cast<OwnedThread*>(thread);
++		if (owned == nullptr || !owned->joinable)
++			return 0;
++		return AsHandle(owned->handle);
++	}
++
++	std::uint64_t ThreadSelf() noexcept {
++		return static_cast<std::uint64_t>(AsHandle(pthread_self()));
++	}
++#else
+ 	struct OwnedThread {
+ 		std::thread thread;
+ 
+@@ -123,6 +248,7 @@ namespace StormByte::Safe::Detail {
+ 	std::uint64_t ThreadSelf() noexcept {
+ 		return Identify(std::this_thread::get_id());
+ 	}
++#endif
+ 
+ 	unsigned ThreadHardware() noexcept {
+ 		return std::thread::hardware_concurrency();
+diff --git a/lib/public/StormByte/safe/thread.hxx b/lib/public/StormByte/safe/thread.hxx
+index e7d2c6d..30a6348 100644
+--- a/lib/public/StormByte/safe/thread.hxx
++++ b/lib/public/StormByte/safe/thread.hxx
+@@ -231,6 +231,7 @@ namespace StormByte {
+ 		 * @brief Execution owned by Base.
+ 		 *
+ 		 * Not an alias of `std::thread`. The native thread is started and joined in Base. Destroying a joinable thread terminates the process, as `std::thread` does.
++		 * A UNIX execution has an 8 MiB stack. musl's default of 128 KiB is not used. Windows keeps the system default.
+ 		 * A @ref Function is stored by value and invoked with @c Call. The creator-module release stays with the function.
+ 		 */
+ 		class STORMBYTE_PUBLIC Thread {
+diff --git a/test/safe/thread_test.cxx b/test/safe/thread_test.cxx
+index b4850c2..3e6dbd0 100644
+--- a/test/safe/thread_test.cxx
++++ b/test/safe/thread_test.cxx
+@@ -37,6 +37,7 @@
+  * SPDX-License-Identifier: LGPL-3.0-or-later OR LicenseRef-StormByte-Commercial
+  */
+ 
++#include <StormByte/platform.h>
+ #include <StormByte/safe/exception.hxx>
+ #include <StormByte/safe/function.hxx>
+ #include <StormByte/safe/thread.hxx>
+@@ -69,6 +70,20 @@ namespace {
+ 		value->fetch_add(delta);
+ 	}
+ 
++#ifdef UNIX
++	// Each frame stays under a page, so the stack grows into the guard instead of jumping it.
++	// 512 frames are a megabyte: musl's 128 KiB default dies, an 8 MiB stack does not.
++	[[gnu::noinline]] int BurnStack(int pages) {
++		volatile unsigned char page[2048];
++		page[0] = 1;
++		page[2047] = static_cast<unsigned char>(pages);
++		if (pages == 0)
++			return page[0];
++		const int deeper = BurnStack(pages - 1);
++		return deeper + page[0] + page[2047];
++	}
++#endif
++
+ 	void* CloneCounter(const void* raw) noexcept {
+ 		auto* source = static_cast<const Counter*>(raw);
+ 		return new Counter{source->value, source->released, source->status};
+@@ -443,6 +458,22 @@ int test_yield_returns() {
+ 	RETURN_TEST(0);
+ }
+ 
++// -------------------
++// Stack
++// -------------------
++
++int test_stack_holds_a_megabyte() {
++#ifdef UNIX
++	std::atomic<int> seen{0};
++	Safe::Thread thread([&seen]() {
++		seen.store(BurnStack(511));
++	});
++	thread.join();
++	ASSERT_TRUE(seen.load() != 0);
++#endif
++	RETURN_TEST(0);
++}
++
+ int main() {
+ 	int result = 0;
+ 
+@@ -486,6 +517,11 @@ int main() {
+ 	result += test_several_threads_all_join();
+ 	result += test_swap_exchanges_joinable();
+ 
++	// -------------------
++	// Stack
++	// -------------------
++	result += test_stack_holds_a_megabyte();
++
+ 	// -------------------
+ 	// This thread
+ 	// -------------------
+-- 
+2.56.0
+
