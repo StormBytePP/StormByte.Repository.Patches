@@ -6,8 +6,9 @@ Matroska seek patches created earlier in the same audit.
 
 There are **66 distinct applicable fixes for ten packages**: all 64 fixes in
 the upstream-submission manifest and the Matroska fix/regression-test pair.
-The package directories contain 75 patch files, including one OpenH264 2.7.0
+The package directories contain 77 patch files, including one OpenH264 2.7.0
 replacement and eight x265 4.3 overrides (seven intentional empty masks).
+Two more intentional empty masks handle Gentoo libvorbis 1.3.7-r2 overlap.
 Nine additional patch files below this
 documentation directory preserve originals or a non-applicable build fix.
 No existing repository files were replaced.
@@ -81,6 +82,19 @@ diffs. Apply these as Gentoo user patches, not as `git am` commits.
   | `0007` rate control | both residual divisions use nonzero-denominator guards |
   | `0008` coefficient groups | two successive shifts, by `cgBlkPos` then 1, avoid shifting by 64 |
   | `0009` diamond directions | unsigned shifts precede the signed directional decode |
+* **Vorbis 1.3.7-r2:** Gentoo already applies upstream `psy-bounds.patch`
+  (commit `315da9cc9d30484c802b2e2ea150df39e060e2b9`) and
+  `ubsan-shift.patch` (commit `bb4047de4c05712bf1fd49b9584c360b8e4e0adf`).
+  They supply the same interpolation-index clamp and unsigned search-hint
+  shift as audit patches `0004` and `0007`. Same-basename zero-byte masks
+  in `media-libs/libvorbis-1.3.7-r2/` suppress only those redundant patches
+  for that exact Gentoo revision. The interpolation condition uses
+  `>=P_BANDS-2` rather than `>=P_BANDS-1`, which has the same effective
+  integer clamp: assigning `P_BANDS-2` when already equal changes nothing.
+  The remaining `0003`, `0005`, and `0006` apply unchanged, retaining all
+  five meaningful corrections. Generic originals remain untouched.
+  Full ordered application and checksum evidence is in
+  `libvorbis-1.3.7-r2-application.log`.
 * **Meson-only FFmpeg fix:** the audit also created
   `0006-meson-vaapi-check-name.patch`. Gentoo's official FFmpeg ebuild uses
   upstream `configure`/Make, not Multimedia's Meson port, so this patch is
@@ -103,6 +117,7 @@ Additional patch-application checks, without fetching or building:
 |---|---|
 | FFmpeg 9.0.2 cached release archive | All 6 patches apply without fuzz |
 | FDK-AAC 2.0.3, Kvazaar 2.3.2, Vorbis 1.3.7 | Installed upstream releases match the audited bases |
+| Gentoo Vorbis 1.3.7-r2 | All four official patches, then the three unmasked audit patches apply without fuzz; both masked fixes verified already present |
 | SVT-AV1 v4.1.0 local Git tag | All 10 patches apply without fuzz |
 | VMAF v3.2.1 local Git tag | Both patches apply without fuzz |
 | OpenH264 v2.7.0 local Git tag | Both selected patches apply without fuzz, using the version-specific override |
@@ -125,7 +140,7 @@ not yet visible there at initial export. Continue using the existing
 patches-repository workflow; no deployment tool is required. The user has
 already deployed through that mechanism. Deploy subsequent corrections the
 same way, preserving live user patches and including both the OpenH264 and
-x265 version-specific directories. In particular, retain x265's zero-byte
+x265 and Vorbis version-specific directories. In particular, retain all zero-byte
 mask files. Merely rerunning `emerge` before those corrections reach the
 live tree will still use the old failing selection.
 

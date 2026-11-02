@@ -1,0 +1,16 @@
+Gentoo libvorbis-1.3.7-r2 source-patch verification
+Archive SHA-256: b33cc4934322bcbf6efcbacf49e3ca01aadbea4114ec9589d1b1e9d20f72954b
+PASS libvorbis-1.3.7-mismatched-free.patch
+  Gentoo patch SHA-256: b5e92ae4f08cd820b098012eb2600e0e6628e2fc3685fece2579ba585be391dc
+PASS libvorbis-1.3.7-macro-wstrict-prototypes.patch
+  Gentoo patch SHA-256: a5377e0f8ffb8e3ba30038da2147c060bd788f0ac8d87d3fc625a868e4366798
+PASS libvorbis-1.3.7-ubsan-shift.patch
+  Gentoo patch SHA-256: da8eef7307b45b90f95482a9c1f9b1a7ac4fcf11d3a460f82f9196675d58ae05
+PASS libvorbis-1.3.7-psy-bounds.patch
+  Gentoo patch SHA-256: fc7934f64cf752eaff00ca3d22115a954d73171bb2d9daa25ef0866fb91fa0b2
+MASK 0004-psy-bound-noise-offset-interpolation.patch (equivalent fix already supplied by Gentoo)
+MASK 0007-sharedbook-pack-search-hints-as-unsigned.patch (equivalent fix already supplied by Gentoo)
+PASS media-libs/libvorbis/0003-psy-avoid-negative-bark-shift.patch
+PASS media-libs/libvorbis/0005-floor1-avoid-negative-deviation-shift.patch
+PASS media-libs/libvorbis/0006-vorbisenc-reuse-shared-mode-residue-allocation.patch
+PASS all five audited fixes retained: three applied, two already provided by Gentoo; GNU patch -p1 --fuzz=0.
