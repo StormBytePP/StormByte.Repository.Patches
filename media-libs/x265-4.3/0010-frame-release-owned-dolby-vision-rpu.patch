@@ -1,0 +1,40 @@
+From fa0369760d3d38e439a39c70a5b944c623c0b8cf Mon Sep 17 00:00:00 2001
+Subject: [PATCH] x265 4.3: release owned Dolby Vision RPU payloads
+
+Gentoo 4.3 adaptation of the Multimedia audit ownership fix. Retain both
+payload-release hunks, with paths relative to Gentoo's source directory.
+Omit only the original patch's unrelated trailing-blank-line removal:
+the 4.3 source already ends without that blank line.
+---
+ common/frame.cpp    | 3 +++
+ encoder/encoder.cpp | 3 +++
+ 2 files changed, 6 insertions(+)
+
+diff --git a/common/frame.cpp b/common/frame.cpp
+--- a/common/frame.cpp
++++ b/common/frame.cpp
+@@ -259,6 +259,9 @@ void Frame::reinit(const SPS& sps)
+ 
+ void Frame::destroy()
+ {
++    delete[] m_rpu.payload;
++    m_rpu.payload = NULL;
++    m_rpu.payloadSize = 0;
+     if (m_encData)
+     {
+         m_encData->destroy();
+diff --git a/encoder/encoder.cpp b/encoder/encoder.cpp
+--- a/encoder/encoder.cpp
++++ b/encoder/encoder.cpp
+@@ -1775,6 +1775,9 @@ int Encoder::encode(const x265_picture* pic_in, x265_picture* pic_out)
+         copyUserSEIMessages(inFrame[0], inputPic[0]);
+ 
+         /*Copy Dolby Vision RPU from inputPic to frame*/
++        delete[] inFrame[0]->m_rpu.payload;
++        inFrame[0]->m_rpu.payload = NULL;
++        inFrame[0]->m_rpu.payloadSize = 0;
+         if (inputPic[0]->rpu.payloadSize)
+         {
+             inFrame[0]->m_rpu.payloadSize = inputPic[0]->rpu.payloadSize;
+-- 
+2.56.0

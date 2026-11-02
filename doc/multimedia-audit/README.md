@@ -6,8 +6,9 @@ Matroska seek patches created earlier in the same audit.
 
 There are **66 distinct applicable fixes for ten packages**: all 64 fixes in
 the upstream-submission manifest and the Matroska fix/regression-test pair.
-The package directories contain 67 patch files because OpenH264 2.7.0 needs
-one version-specific replacement. Nine additional patch files below this
+The package directories contain 75 patch files, including one OpenH264 2.7.0
+replacement and eight x265 4.3 overrides (seven intentional empty masks).
+Nine additional patch files below this
 documentation directory preserve originals or a non-applicable build fix.
 No existing repository files were replaced.
 
@@ -62,6 +63,24 @@ diffs. Apply these as Gentoo user patches, not as `git am` commits.
   only the missing hunk. Gentoo automatically selects this override for
   2.7.0, including ebuild revisions; `0002` still comes from the package-wide
   directory. Do not manually apply both versions of `0001`.
+* **x265 4.3:** seven fixes are already present upstream in the release,
+  before Gentoo's own patches. Applying the older-base patches again fails.
+  The same-basename empty files in `media-libs/x265-4.3/` intentionally mask
+  `0003` through `0009` using Portage's documented empty-file override
+  mechanism. They are required files, not accidentally empty patches.
+  The `0010` override retains both RPU ownership changes; it omits only
+  an unrelated trailing-blank-line deletion already inapplicable to 4.3.
+  All generic patches and archived originals remain unchanged.
+
+  | Masked patch | Equivalent correction already in x265 4.3 |
+  |---|---|
+  | `0003` NAL buffer | `if (m_occupancy)` guards the copy |
+  | `0004` bitstream | `topword < 32` guards the shift |
+  | `0005` lookahead | temporal estimator reference is acquired inside the enabled-filter branch |
+  | `0006` signed vectors | shifts operate on `uint32_t`, not negative signed operands |
+  | `0007` rate control | both residual divisions use nonzero-denominator guards |
+  | `0008` coefficient groups | two successive shifts, by `cgBlkPos` then 1, avoid shifting by 64 |
+  | `0009` diamond directions | unsigned shifts precede the signed directional decode |
 * **Meson-only FFmpeg fix:** the audit also created
   `0006-meson-vaapi-check-name.patch`. Gentoo's official FFmpeg ebuild uses
   upstream `configure`/Make, not Multimedia's Meson port, so this patch is
@@ -88,13 +107,13 @@ Additional patch-application checks, without fetching or building:
 | VMAF v3.2.1 local Git tag | Both patches apply without fuzz |
 | OpenH264 v2.7.0 local Git tag | Both selected patches apply without fuzz, using the version-specific override |
 | x264 installed commit `4613ac3c15fd75cebc4b9f65b7fb95e70a3acce1` | Patch applies without fuzz |
-| x265 4.3 | Release sources unavailable locally; only audited 4.2 patch application checked |
+| x265 4.3 | Cached release plus all nine official Gentoo patches checked; seven upstream-equivalent masks and the adapted RPU patch select/apply correctly without fuzz |
 | LAME 3.100 release archive | Unavailable locally; only audited Git snapshot patch application checked |
 
 These are source-patch checks, not Gentoo builds or tests. Gentoo's own
 ebuild patches, selected USE flags, newer versions, and different source
-snapshots can still require rebasing. In particular, do not assume x265 4.3
-is source-compatible merely because the package mapping is correct.
+snapshots can still require rebasing. x265 4.3 now has a version-specific
+selection verified after Gentoo's own patches; future releases need another check.
 Future OpenH264 versions also need a fresh check: the 2.7.0 override is
 intentionally not applied indiscriminately to future releases.
 
@@ -102,10 +121,20 @@ intentionally not applied indiscriminately to future releases.
 
 This checkout is **not** the live `/etc/portage/patches` tree on the inspected
 system: the directories have different identities and the new patches are
-not yet visible there. Deploy through the existing patches-repository
-workflow first, preserving any live user patches and copying the OpenH264
-version-specific directory too. Merely running `emerge` before deployment
-will not activate these fixes.
+not yet visible there at initial export. Continue using the existing
+patches-repository workflow; no deployment tool is required. The user has
+already deployed through that mechanism. Deploy subsequent corrections the
+same way, preserving live user patches and including both the OpenH264 and
+x265 version-specific directories. In particular, retain x265's zero-byte
+mask files. Merely rerunning `emerge` before those corrections reach the
+live tree will still use the old failing selection.
+
+The 66 fixes comprise the manifest's 64 plus
+`0007-avformat-matroska-reset-state-after-generic-or-byte-.patch` and
+`0008-tests-api-cover-Matroska-byte-seek-after-EOF.patch`.
+Do not activate the archived Meson-only
+`doc/multimedia-audit/non-applicable/0006-meson-vaapi-check-name.patch`
+or the eight archived x265 originals.
 
 After deployment, the following commands deliberately finish the patched
 libraries before rebuilding FFmpeg. VMAF is first because Gentoo x265 can
