@@ -1,0 +1,65 @@
+Detect resolver capabilities instead of assuming musl is exclusive to Alpine.
+Use the existing res_search fallback when the complete res_n* API is unavailable,
+while retaining the reentrant resolver on glibc and other supporting platforms.
+
+--- a/libmysql/CMakeLists.txt
++++ b/libmysql/CMakeLists.txt
+@@ -282,6 +282,27 @@
+   MESSAGE(FATAL_ERROR "Can't find neither Win32 nor Unix DNS SRV APIs")
+ ENDIF()
+ #
++IF(NOT WIN32)
++  CMAKE_PUSH_CHECK_STATE(RESET)
++  IF(RESOLV_LIBRARY)
++    SET(CMAKE_REQUIRED_LIBRARIES ${RESOLV_LIBRARY})
++  ENDIF()
++  CHECK_CXX_SOURCE_COMPILES("
++    #include <netinet/in.h>
++    #include <resolv.h>
++    int main() {
++      struct __res_state state {};
++      unsigned char answer[NS_PACKETSZ];
++      res_ninit(&state);
++      res_nsearch(&state, \"localhost\", ns_c_in, ns_t_srv,
++                  answer, sizeof(answer));
++      res_nclose(&state);
++    }" HAVE_RES_N_FUNCTIONS)
++  CMAKE_POP_CHECK_STATE()
++  IF(HAVE_RES_N_FUNCTIONS)
++    ADD_COMPILE_DEFINITIONS(HAVE_RES_N_FUNCTIONS)
++  ENDIF()
++ENDIF()
+ # On Windows platform client library includes the client-side
+ # Windows Native Authentication plugin.
+ #
+--- a/libmysql/dns_srv.cc
++++ b/libmysql/dns_srv.cc
+@@ -41,7 +41,7 @@
+ // POSIX version
+ 
+ static bool get_dns_srv(Dns_srv_data &data, const char *dnsname, int &error) {
+-#ifdef LINUX_ALPINE
++#ifndef HAVE_RES_N_FUNCTIONS
+   res_init();
+ #else
+   struct __res_state state {};
+@@ -52,7 +52,7 @@
+ 
+   data.clear();
+ 
+-#ifdef LINUX_ALPINE
++#ifndef HAVE_RES_N_FUNCTIONS
+   int res = res_search(dnsname, ns_c_in, ns_t_srv, query_buffer,
+                        sizeof(query_buffer));
+ #else
+@@ -93,9 +93,7 @@
+     error = h_errno;
+   }
+ 
+-#ifdef LINUX_ALPINE
+-  // nothing
+-#else
++#ifdef HAVE_RES_N_FUNCTIONS
+   res_nclose(&state);
+ #endif
+   return ret;
