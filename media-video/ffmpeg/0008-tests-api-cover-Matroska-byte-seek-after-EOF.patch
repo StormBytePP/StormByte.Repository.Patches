@@ -16,14 +16,12 @@ diff --git a/tests/api/Makefile b/tests/api/Makefile
 index 987db1b785..f36b190d5a 100644
 --- a/tests/api/Makefile
 +++ b/tests/api/Makefile
-@@ -2,6 +2,7 @@ APITESTPROGS-$(call ENCDEC, FLAC, FLAC) += api-flac
- APITESTPROGS-$(call DEMDEC, H264, H264) += api-h264
- APITESTPROGS-$(call DEMDEC, H264, H264) += api-h264-slice
+@@ -8,4 +8,5 @@
  APITESTPROGS-yes += api-seek api-dump-stream-meta
 +APITESTPROGS-yes += api-seek-byte
  APITESTPROGS-$(call DEMDEC, H263, H263) += api-band
  APITESTPROGS-$(HAVE_THREADS) += api-threadmessage
- APITESTPROGS-$(call ALLYES, H261_ENCODER H261_PARSER) += api-enc-parser
+ APITESTPROGS-$(CONFIG_AVCODEC) += api-enc-info
 diff --git a/tests/api/api-seek-byte-test.c b/tests/api/api-seek-byte-test.c
 new file mode 100644
 index 0000000000..b7a4ca42a0
